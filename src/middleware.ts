@@ -1,53 +1,91 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
-  // Public paths that don't require authentication
-  const publicPaths = ['/', '/signin', '/signup', '/api/auth',"/site", "/api/uploadthing"];
-  
-  const isPublicPath = publicPaths.some(path => 
-    pathname.startsWith(path)
+// This middleware protects all routes including api/trpc routes
+export default clerkMiddleware(async (auth, req) => {
+  const url = req.nextUrl;
+  const searchParams = url.searchParams.toString();
+  const headers = req.headers;
+
+  const pathWithSearchParams = `${url.pathname}${
+    searchParams.length > 0 ? `?${searchParams}` : ""
+  }`;
+
+  // -------------------------------
+  // Subdomain handling
+  // -------------------------------
+  const host = headers.get("host") || "";
+  const domain = process.env.NEXT_PUBLIC_DOMAIN?.trim();
+
+  // Only rewrite for subdomains when a base domain is configured
+  const baseHost = host.split(":")[0]; // strip port for local dev
+  const hasBaseDomain = Boolean(domain && baseHost.endsWith(domain));
+  const hasCustomSubDomain = Boolean(
+    hasBaseDomain && domain && baseHost !== domain
   );
-  
-  // Check if path is for API auth routes (which handle their own auth)
-  const isApiAuthRoute = pathname.startsWith('/api/auth');
-  
-  // If it's a public path or API auth route, allow access
-  if (isPublicPath || isApiAuthRoute) {
+  const customSubDomain = hasCustomSubDomain
+    ? baseHost.replace(`.${domain}`, "")
+    : "";
+
+  // Skip subdomain rewrite for global/auth routes so they keep working
+  const skipSubdomainRewrite = [
+    "/agency",
+    "/sign-in",
+    "/sign-up",
+    "/api",
+    "/trpc",
+  ];
+
+  if (
+    customSubDomain &&
+    !skipSubdomainRewrite.some((path) => url.pathname.startsWith(path))
+  ) {
+    return NextResponse.rewrite(
+      new URL(`/${customSubDomain}${pathWithSearchParams}`, req.url)
+    );
+  }
+
+  // -------------------------------
+  // Auth routes redirect
+  // -------------------------------
+  if (url.pathname === "/sign-in" || url.pathname === "/sign-up") {
+    return NextResponse.redirect(
+      new URL("/agency/sign-in", req.url)
+    );
+  }
+
+  // -------------------------------
+  // Root / Site handling
+  // -------------------------------
+  if (
+    url.pathname === "/" ||
+    (url.pathname === "/site" && host === domain)
+  ) {
+    return NextResponse.rewrite(
+      new URL("/site", req.url)
+    );
+  }
+
+  // -------------------------------
+  // Agency / Subaccount
+  // -------------------------------
+  if (
+    url.pathname.startsWith("/agency") ||
+    url.pathname.startsWith("/subaccount")
+  ) {
     return NextResponse.next();
   }
-  
-  // For protected routes, check authentication
-  const token = request.cookies.get('token')?.value;
-  
-  if (!token) {
-    return NextResponse.redirect(new URL('/signin', request.url));
-  }
-  
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    // Token invalid, redirect to login
-    const response = NextResponse.redirect(new URL('/signin', request.url));
-    response.cookies.delete('token'); // Remove invalid token
-    return response;
-  }
-  
-  return NextResponse.next();
-}
 
-// Configure which paths to run middleware on
+  // -------------------------------
+  // Default allow
+  // -------------------------------
+  return NextResponse.next();
+});
+
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    "/((?!.+\\.[\\w]+$|_next).*)",
+    "/",
+    "/(api|trpc)(.*)",
   ],
 };

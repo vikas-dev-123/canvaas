@@ -1,13 +1,9 @@
-import mysql from 'mysql2/promise';
+import { PrismaClient } from "@prisma/client";
 
-const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '@vikas12345678',
-  database: process.env.MYSQL_DATABASE || 'canvaas',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+declare global {
+    var prisma: PrismaClient | undefined;
+}
 
-export default pool;
+export const db = globalThis.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") globalThis.prisma = db;
