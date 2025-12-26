@@ -39,19 +39,22 @@ const Page = async ({searchParams}:{
     }
 
     const authUser = await currentUser();
+  if (!authUser) {
+    return redirect('/sign-in');
+  }
 
-    return (
-        <div className="flex justify-center items-center mt-4">
-            <div className="max-w-[850px] border p-4 rounded-xl">
-                <h1 className="text-4xl">Create An Agency</h1>
-                <AgencyDetails
-                    data={{
-                        companyEmail: authUser?.emailAddresses[0].emailAddress,
-                    }}
-                />
-            </div>
-        </div>
-    );
+  return (
+    <div className="flex justify-center items-center mt-4">
+      <div className="max-w-[850px] border p-4 rounded-xl">
+        <h1 className="text-4xl">Create An Agency</h1>
+        <AgencyDetails
+          data={{
+            companyEmail: authUser?.emailAddresses[0].emailAddress,
+          }}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default Page;

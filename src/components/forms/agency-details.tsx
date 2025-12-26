@@ -123,7 +123,7 @@ const AgencyDetails = ({ data }: Props) => {
                     connectAccountId: "",
                     goal: 5,
                 });
-                toast({ title: "Create Agency" });
+                toast({ title: "Created Agency" });
                 if (data?.id) return router.refresh();
                 if (response) {
                     return router.refresh();
@@ -347,10 +347,10 @@ const AgencyDetails = ({ data }: Props) => {
                             </Button>
                         </form>
                     </Form>
-                    {data?.id && (
+                    {!data?.id && (
                         <div className="flex flex-col items-center justify-between rounded-lg  border border-destructive gap-2 p-3 mt-4">
                             <div>
-                                <div>Gander Zone</div>
+                                <div>Danger Zone</div>
                             </div>
                             <div className="text-muted-foreground">Deleting your agency cannpt be undone. This will also delete all sub accounts and all data related to your sub accounts. Sub accounts will no longer have access to funnels, contacts etc.</div>
                             <AlertDialogTrigger disabled={isLoading || deletingAgency} className="text-red-600 p-2 text-center mt-2 rounded-md hove:bg-red-600 hover:text-white whitespace-nowrap">

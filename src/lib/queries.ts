@@ -1,9 +1,9 @@
-"use server"
+'use server'
 
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { db } from "./db";
 import { redirect } from "next/navigation";
-import { Agency, Plan, User } from "@prisma/client";
+import { Agency, Plan, SubAccount, User } from "@prisma/client";
 
 
 export const getAuthUserDetails = async () => {
@@ -284,4 +284,48 @@ export const upsertAgency = async (agency: Agency, price?: Plan) => {
     } catch (error) {
         console.log(error);
     }
+};
+
+
+
+export const updateSubaccountDetails = async (
+
+  subaccountId: string,
+
+  subaccountDetails: Partial<SubAccount>
+
+) => {
+
+  const response = await db.subAccount.update({
+
+    where: { id: subaccountId },
+
+    data: { ...subaccountDetails },
+
+  });
+
+  return response;
+
+};
+
+
+
+export const createMedia = async (subaccountId: string, mediaFile: { link: string; name: string }) => {
+
+  const response = await db.media.create({
+
+    data: {
+
+      subAccountId: subaccountId,
+
+      link: mediaFile.link,
+
+      name: mediaFile.name,
+
+    },
+
+  });
+
+  return response;
+
 };

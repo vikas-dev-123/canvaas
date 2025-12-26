@@ -1,8 +1,13 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// This middleware protects all routes including api/trpc routes
 export default clerkMiddleware(async (auth, req) => {
+
+  // 🔥 CRITICAL FIX
+  if (req.nextUrl.pathname.startsWith("/api/uploadthing")) {
+    return NextResponse.next();
+  }
+
   const url = req.nextUrl;
   const searchParams = url.searchParams.toString();
   const headers = req.headers;
@@ -17,17 +22,16 @@ export default clerkMiddleware(async (auth, req) => {
   const host = headers.get("host") || "";
   const domain = process.env.NEXT_PUBLIC_DOMAIN?.trim();
 
-  // Only rewrite for subdomains when a base domain is configured
-  const baseHost = host.split(":")[0]; // strip port for local dev
+  const baseHost = host.split(":")[0];
   const hasBaseDomain = Boolean(domain && baseHost.endsWith(domain));
   const hasCustomSubDomain = Boolean(
     hasBaseDomain && domain && baseHost !== domain
   );
+
   const customSubDomain = hasCustomSubDomain
     ? baseHost.replace(`.${domain}`, "")
     : "";
 
-  // Skip subdomain rewrite for global/auth routes so they keep working
   const skipSubdomainRewrite = [
     "/agency",
     "/sign-in",
@@ -38,7 +42,9 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (
     customSubDomain &&
-    !skipSubdomainRewrite.some((path) => url.pathname.startsWith(path))
+    !skipSubdomainRewrite.some((path) =>
+      url.pathname.startsWith(path)
+    )
   ) {
     return NextResponse.rewrite(
       new URL(`/${customSubDomain}${pathWithSearchParams}`, req.url)
@@ -66,19 +72,6 @@ export default clerkMiddleware(async (auth, req) => {
     );
   }
 
-  // -------------------------------
-  // Agency / Subaccount
-  // -------------------------------
-  if (
-    url.pathname.startsWith("/agency") ||
-    url.pathname.startsWith("/subaccount")
-  ) {
-    return NextResponse.next();
-  }
-
-  // -------------------------------
-  // Default allow
-  // -------------------------------
   return NextResponse.next();
 });
 
