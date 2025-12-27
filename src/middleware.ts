@@ -2,7 +2,7 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export default clerkMiddleware({
-  publicRoutes: ["/api/uploadthing"],
+  publicRoutes: ["/api/uploadthing","/site"],
 
   afterAuth(auth, req) {
     const url = req.nextUrl;

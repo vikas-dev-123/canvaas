@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { ModalProvider } from "@/providers/modal-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -34,7 +36,11 @@ export default function RootLayout({
         <ThemeProvider
         attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange
         >
+          <ModalProvider>
           {children}
+          <Toaster />
+          
+          </ModalProvider>
         </ThemeProvider>
         </body>
       </html>

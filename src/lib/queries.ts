@@ -3,7 +3,7 @@
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { db } from "./db";
 import { redirect } from "next/navigation";
-import { Agency, Plan, SubAccount, User } from "@prisma/client";
+import { Agency, Plan, User } from "@prisma/client";
 
 
 export const getAuthUserDetails = async () => {
@@ -286,46 +286,21 @@ export const upsertAgency = async (agency: Agency, price?: Plan) => {
     }
 };
 
-
-
-export const updateSubaccountDetails = async (
-
-  subaccountId: string,
-
-  subaccountDetails: Partial<SubAccount>
-
-) => {
-
-  const response = await db.subAccount.update({
-
-    where: { id: subaccountId },
-
-    data: { ...subaccountDetails },
-
-  });
-
-  return response;
-
-};
-
-
-
-export const createMedia = async (subaccountId: string, mediaFile: { link: string; name: string }) => {
-
-  const response = await db.media.create({
-
-    data: {
-
-      subAccountId: subaccountId,
-
-      link: mediaFile.link,
-
-      name: mediaFile.name,
-
-    },
-
-  });
-
-  return response;
-
+export const getNotificationAndUser = async (agencyId: string) => {
+    try {
+        const response = await db.notification.findMany({
+            where: {
+                agencyId,
+            },
+            include: {
+                User: true,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+        return response;
+    } catch (error) {
+        console.log(error);
+    }
 };
