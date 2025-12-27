@@ -180,7 +180,13 @@ const AgencyDetails = ({ data }: Props) => {
                                     <FormItem>
                                         <FormLabel>Agency Logo</FormLabel>
                                         <FormControl>
-                                            <FileUpload apiEndpoint="agencyLogo" onChange={field.onChange} value={field.value} />
+                                            <FileUpload
+                                            apiEndpoint="agencyLogo"
+                                            value={field.value}
+                                            onChange={(url: string) => {
+                                            field.onChange(url);
+                                                                      }}
+                                             />
                                         </FormControl>
                                     </FormItem>
                                 )}
