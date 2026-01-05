@@ -63,7 +63,7 @@ const PipelineView: React.FC<PipelineViewProps> = ({ lanes, pipelineId, subaccou
 
             case "ticket": {
                 if (!allLanes) return;
-                let newLanes = [...allLanes];
+                const newLanes = [...allLanes];
                 const originLane = newLanes.find((lane) => lane.id === source.droppableId);
 
                 const destinationLane = newLanes.find((lane) => lane.id === destination.droppableId);

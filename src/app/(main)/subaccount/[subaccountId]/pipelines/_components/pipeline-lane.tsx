@@ -91,13 +91,13 @@ const PipelineLane: React.FC<PipelineLaneProps> = ({ setAllTickets, allTickets, 
         <Draggable draggableId={laneDetails.id.toString()} index={index} key={laneDetails.id}>
             {(provided, snapshot) => {
                 if (snapshot.isDragging) {
-                    //@ts-ignore
+                     
                     const offset = { x: 300, y: 0 };
-                    //@ts-ignore
+                   
                     const x = provided.draggableProps.style?.left - offset.x;
-                    //@ts-ignore
+                  
                     const y = provided.draggableProps.style?.top - offset.y;
-                    //@ts-ignore
+                  
                     provided.draggableProps.style = {
                         ...provided.draggableProps.style,
                         top: y,
