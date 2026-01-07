@@ -13,6 +13,8 @@ const CreateContactButton = ({ subaccountId }: Props) => {
     const { setOpen } = useModal();
 
     const handleCreateContact = () => {
+   
+   
         setOpen(
             <CustomModal title="Create Or Update Contact information" subheading="Contacts are like customers.">
                 <ContactUserForm subaccountId={subaccountId} />
