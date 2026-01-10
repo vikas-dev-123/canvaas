@@ -3,7 +3,7 @@ import BlurPage from "@/components/global/blur-page";
 import InfoBar from "@/components/global/infobar";
 import Sidebar from "@/components/sidebar";
 import Unauthorized from "@/components/unauthorized";
-import { getNotificationAndUser, verifyAndAcceptInvitation } from "@/lib/queries";
+import { getNotificationAndUser, verifyAndAcceptInvitation, getUserRoleFromDatabase } from "@/lib/queries";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
@@ -25,7 +25,11 @@ const Layout = async ({ children, params }: Props) => {
         return redirect(`/agency`);
     }
 
-    if (user.privateMetadata.role !== "AGENCY_OWNER" && user.privateMetadata.role !== "AGENCY_ADMIN") return <Unauthorized />;
+    // ✅ Check role from database (in case Clerk metadata hasn't synced yet)
+    const userRoleData = await getUserRoleFromDatabase();
+    const userRole = userRoleData?.role || user.privateMetadata.role;
+
+    if (userRole !== "AGENCY_OWNER" && userRole !== "AGENCY_ADMIN") return <Unauthorized />;
 
     let allNoti: any = [];
     const notifications = await getNotificationAndUser(agencyId);

@@ -6,7 +6,7 @@ type ToastProps = {
   variant?: 'default' | 'destructive'
 }
 
-export function useToast() {
+export function useToast(p0: { title: string; description: string }) {
   const toast = (props: ToastProps) => {
     const { title, description, variant } = props
 

@@ -59,6 +59,26 @@ export const getAuthUserDetails = async () => {
     return userData;
 };
 
+export const getUserRoleFromDatabase = async () => {
+    const user = await currentUser();
+
+    if (!user) {
+        return null;
+    }
+
+    const userData = await db.user.findUnique({
+        where: {
+            email: user.emailAddresses[0].emailAddress,
+        },
+        select: {
+            role: true,
+            agencyId: true,
+        },
+    });
+
+    return userData;
+};
+
 export const saveActivityLogsNotification = async ({ agencyId, description, subAccountId }: { agencyId?: String; description?: String; subAccountId?: String }) => {
     const authUser = await currentUser();
     let userData;
