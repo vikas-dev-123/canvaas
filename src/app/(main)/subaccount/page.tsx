@@ -25,8 +25,8 @@ const Page = async ({ searchParams }: Props) => {
     const getFirstSubAccountWithAccess = user.Permissions.find((p) => p.access === true);
 
     if (searchParams.state) {
-        const statePath = searchParams.state.split("__")[0];
-        const stateSubAccountId = searchParams.state.split("__")[1];
+        const statePath = searchParams.state.split("___")[0];
+        const stateSubAccountId = searchParams.state.split("___")[1];
         if (!stateSubAccountId) return <Unauthorized />;
 
         return redirect(`/subaccount/${stateSubAccountId}/${statePath}?code=${searchParams.code}`);

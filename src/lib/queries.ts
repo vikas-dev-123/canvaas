@@ -21,11 +21,16 @@ export const getUser = async (id: string) => {
 };
 
 export const deleteUser = async (userId: string) => {
-    await clerkClient.users.updateUserMetadata(userId, {
-        privateMetadata: {
-            role: undefined,
-        },
-    });
+    try {
+        const clerk = await clerkClient();
+        await clerk.users.updateUserMetadata(userId, {
+            privateMetadata: {
+                role: undefined,
+            },
+        });
+    } catch (error) {
+        console.error('Error updating user metadata:', error);
+    }
     const deletedUser = await db.user.delete({ where: { id: userId } });
     return deletedUser;
 };
@@ -170,11 +175,16 @@ export const updateUser = async (user: Partial<User>) => {
             ...user,
         },
     });
-    await clerkClient.users.updateUserMetadata(response.id, {
-        publicMetadata: {
-            role: user.role || "SUBACCOUNT_USER",
-        },
-    });
+    try {
+        const clerk = await clerkClient();
+        await clerk.users.updateUserMetadata(response.id, {
+            publicMetadata: {
+                role: user.role || "SUBACCOUNT_USER",
+            },
+        });
+    } catch (error) {
+        console.error('Error updating user metadata:', error);
+    }
 
     return response;
 };
@@ -242,11 +252,16 @@ export const verifyAndAcceptInvitation = async () => {
             subAccountId: undefined,
         });
         if (userDetails) {
-            await clerkClient.users.updateUserMetadata(user.id, {
-                privateMetadata: {
-                    role: userDetails.role || "SUBACCOUNT_USER",
-                },
-            });
+            try {
+                const clerk = await clerkClient();
+                await clerk.users.updateUserMetadata(user.id, {
+                    privateMetadata: {
+                        role: userDetails.role || "SUBACCOUNT_USER",
+                    },
+                });
+            } catch (error) {
+                console.error('Error updating user metadata:', error);
+            }
             await db.invitation.delete({
                 where: {
                     email: userDetails.email,
@@ -312,11 +327,18 @@ export const initUser = async (newUser: Partial<User>) => {
         },
     });
 
-    await clerkClient.users.updateUserMetadata(user.id, {
-        privateMetadata: {
-            role: newUser.role || "SUBACCOUNT_USER",
-        },
-    });
+    try {
+        const clerk = await clerkClient();
+        if (clerk.users && user.id) {
+            await clerk.users.updateUserMetadata(user.id, {
+                privateMetadata: {
+                    role: newUser.role || "SUBACCOUNT_USER",
+                },
+            });
+        }
+    } catch (error) {
+        console.error('Error updating user metadata:', error);
+    }
 
     return userData;
 };
@@ -400,7 +422,9 @@ export const getNotificationAndUser = async (agencyId: string) => {
 };
 
 export const upsertSubAccount = async (subAccount: SubAccount) => {
-    if (!subAccount.companyEmail) return null;
+    if (!subAccount.companyEmail) {
+        throw new Error("Company email is required to create a subaccount");
+    }
 
     const agencyOwner = await db.user.findFirst({
         where: {
@@ -411,7 +435,10 @@ export const upsertSubAccount = async (subAccount: SubAccount) => {
         },
     });
 
-    if (!agencyOwner) return console.log("Error could not create subaccount");
+    if (!agencyOwner) {
+        throw new Error("No agency owner found. Cannot create subaccount.");
+    }
+    
     const permissionId = v4();
     const response = await db.subAccount.upsert({
         where: { id: subAccount.id },
@@ -539,7 +566,8 @@ export const sendInvitation = async (role: Role, email: string, agencyId: string
     });
 
     try {
-        await clerkClient.invitations.createInvitation({
+        const clerk = await clerkClient();
+        await clerk.invitations.createInvitation({
             emailAddress: email,
             redirectUrl: process.env.NEXT_PUBLIC_URL,
             publicMetadata: {

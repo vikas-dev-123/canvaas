@@ -11,7 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.36.4",
     "@clerk/themes": "^2.4.45",
-    "@hookform/resolvers": "^5.2.2",
+    "@hookform/resolvers": "3.3.4",
     "@prisma/client": "5.18.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -67,13 +67,13 @@
     "react-resizable-panels": "^4.0.7",
     "recharts": "2.15.4",
     "sonner": "^2.0.7",
-    "stripe": "^20.1.2",
+    "stripe": "14.12.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "uploadthing": "^7.7.4",
     "uuid": "^13.0.0",
     "vaul": "^1.1.2",
-    "zod": "^4.2.1"
+    "zod": "3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20",

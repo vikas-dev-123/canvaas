@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
@@ -14,10 +13,11 @@ type Props = {
     };
     searchParams: {
         code: string;
+        state: string;
     };
 };
 
-const   LaunchPadPage = async ({ params, searchParams }: Props) => {
+const Page = async ({ params, searchParams }: Props) => {
     const agencyDetails = await db.agency.findUnique({
         where: { id: params.agencyId },
     });
@@ -46,10 +46,17 @@ const   LaunchPadPage = async ({ params, searchParams }: Props) => {
                 });
                 connectedStripeAccount = true;
             } catch (error) {
-                console.log("🔴 Could not connect stripe account");
+                console.log("🔴 Could not connect stripe account",error);
             }
         }
     }
+    
+    // Re-fetch agency details after Stripe connection
+    const updatedAgencyDetails = connectedStripeAccount 
+        ? await db.agency.findUnique({
+            where: { id: params.agencyId },
+        })
+        : agencyDetails;
 
     return (
         <div className="flex flex-col justify-center items-center">
@@ -62,17 +69,17 @@ const   LaunchPadPage = async ({ params, searchParams }: Props) => {
                     <CardContent className="flex flex-col gap-4">
                         <div className="flex justify-between items-center w-full border p-4 rounded-lg gap-2">
                             <div className="flex md:items-center gap-4 flex-col md:!flex-row">
-                                <Image src="/appstore.png" alt="app logo" height={80} width={80} className="rounded-md object-contain" />
+                                <Image src="/assets/appstore.png" alt="app logo" height={80} width={80} className="rounded-md object-contain" />
                                 <p> Save the website as a shortcut on your mobile device</p>
                             </div>
                         </div>
 
                         <div className="flex justify-between items-center w-full border p-4 rounded-lg gap-2">
                             <div className="flex md:items-center gap-4 flex-col md:!flex-row">
-                                <Image src="/stripelogo.png" alt="app logo" height={80} width={80} className="rounded-md object-contain" />
+                                <Image src="/assets/stripelogo.png" alt="app logo" height={80} width={80} className="rounded-md object-contain" />
                                 <p>Connect your stripe account to accept payments and see your dashboard.</p>
                             </div>
-                            {agencyDetails.connectAccountId || connectedStripeAccount ? (
+                            {updatedAgencyDetails?.connectAccountId || connectedStripeAccount ? (
                                 <CheckCircleIcon size={50} className=" text-primary p-2 flex-shrink-0" />
                             ) : (
                                 <Link className="bg-primary py-2 px-4 rounded-md text-white" href={stripeOAuthLink}>
@@ -101,4 +108,4 @@ const   LaunchPadPage = async ({ params, searchParams }: Props) => {
     );
 };
 
-export default LaunchPadPage;
+export default Page;

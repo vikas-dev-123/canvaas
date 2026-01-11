@@ -110,7 +110,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({ details, agencyDe
         if (details) {
             form.reset(details);
         }
-    }, [details, form]);
+    }, [details]);
 
     const isLoading = form.formState.isSubmitting;
 

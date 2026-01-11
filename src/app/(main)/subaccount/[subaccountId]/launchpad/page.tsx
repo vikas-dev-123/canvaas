@@ -56,6 +56,15 @@ const Page = async ({ searchParams, params }: Props) => {
         }
     }
 
+    // Re-fetch subaccount details after Stripe connection
+    const updatedSubAccountDetails = connectedStripeAccount 
+        ? await db.subAccount.findUnique({
+            where: {
+                id: params.subaccountId,
+            },
+        })
+        : subAccountDetails;
+
     return (
         <BlurPage>
             <div className="flex flex-col justify-center items-center">
@@ -78,7 +87,7 @@ const Page = async ({ searchParams, params }: Props) => {
                                     <Image src="/stripelogo.png" alt="App logo" height={80} width={80} className="rounded-md object-contain " />
                                     <p>Connect your stripe account to accept payments. Stripe is used to run payouts.</p>
                                 </div>
-                                {subAccountDetails.connectAccountId || connectedStripeAccount ? (
+                                {updatedSubAccountDetails?.connectAccountId || connectedStripeAccount ? (
                                     <CheckCircleIcon size={50} className=" text-primary p-2 flex-shrink-0" />
                                 ) : (
                                     <Link className="bg-primary py-2 px-4 rounded-md text-white" href={stripeOAuthLink}>

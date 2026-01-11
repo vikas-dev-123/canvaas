@@ -7,14 +7,17 @@ type Props = {
   apiEndpoint: "agencyLogo" | "avatar" | "subaccountLogo";
   onChange: (url?: string) => void;
   value?: string;
+  id?: string;
 };
 
-const FileUpload = ({ apiEndpoint, onChange, value }: Props) => {
+const FileUpload = ({ apiEndpoint, onChange, value, id }: Props) => {
   const type = value?.split(".").pop();
 
   if (value) {
     return (
       <div className="flex flex-col items-center justify-center">
+        {/* Hidden input to satisfy label htmlFor association for accessibility/linting */}
+        {id && <input type="hidden" id={id} value={value ?? ""} />}
         {type !== "pdf" ? (
           <div className="relative w-40 h-40">
             <Image
@@ -52,10 +55,12 @@ const FileUpload = ({ apiEndpoint, onChange, value }: Props) => {
 
   return (
     <div className="w-full bg-muted/30">
+      {/* Hidden input to satisfy label htmlFor association for accessibility/linting */}
+      {id && <input type="hidden" id={id} value={value || ""} />}
       <UploadDropzone   
         endpoint={apiEndpoint}
         onClientUploadComplete={(res) => {
-          onChange(res?.[0]?.ufsUrl); // ✅ SAFE
+          onChange(res?.[0]?.url);
         }}
         onUploadError={(error) => {
           console.error(error.message);

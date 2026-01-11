@@ -26,8 +26,14 @@ const Page = async ({searchParams}:{
                 return redirect(`/agency/${agencyId}/billing?plan=${searchParams.plan}`);
             }
             if (searchParams.state) {
-                const statePath = searchParams.state.split("__")[0];
-                const stateAgencyId = searchParams.state.split("__")[1];
+                // Handle both launchpad__ and ___ formats
+                const parts = searchParams.state.includes("___") 
+                    ? searchParams.state.split("___")
+                    : searchParams.state.split("__");
+                
+                const statePath = parts[0];
+                const stateAgencyId = parts[1] || agencyId;
+                
                 if (!stateAgencyId) return <div>Not authorized</div>;
                 return redirect(`/agency/${stateAgencyId}/${statePath}?code=${searchParams.code}`);
             } else {
