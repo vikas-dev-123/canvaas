@@ -10,6 +10,23 @@ import { CreateFunnelFormSchema, CreateMediaType, CreatePipeLineType, UpsertFunn
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
+type UpsertSubAccountInput = {
+  id: string;
+  agencyId: string;
+  name: string;
+  companyEmail?: string;
+  companyPhone: string;
+  address: string;
+  city: string;
+  zipCode: string;
+  state: string;
+  country: string;
+  subAccountLogo?: string;
+  goal: number;
+  connectAccountId?: string;
+};
+
+
 export const getUser = async (id: string) => {
     const user = await db.user.findUnique({
         where: {
@@ -421,93 +438,81 @@ export const getNotificationAndUser = async (agencyId: string) => {
     }
 };
 
-export const upsertSubAccount = async (subAccount: SubAccount) => {
-    if (!subAccount.companyEmail) {
-        throw new Error("Company email is required to create a subaccount");
-    }
+export const upsertSubAccount = async (subAccount: UpsertSubAccountInput) => {
+  const agencyOwner = await db.user.findFirst({
+    where: {
+      Agency: { id: subAccount.agencyId },
+      role: "AGENCY_OWNER",
+    },
+  });
 
-    const agencyOwner = await db.user.findFirst({
-        where: {
-            Agency: {
-                id: subAccount.agencyId,
-            },
-            role: "AGENCY_OWNER",
-        },
-    });
+  if (!agencyOwner) {
+    throw new Error("No agency owner found");
+  }
 
-    if (!agencyOwner) {
-        throw new Error("No agency owner found. Cannot create subaccount.");
-    }
-    
-    const permissionId = v4();
-    const response = await db.subAccount.upsert({
-        where: { id: subAccount.id },
-        update: subAccount,
+  const permissionId = v4();
+
+  const response = await db.subAccount.upsert({
+    where: { id: subAccount.id },
+
+    update: {
+      name: subAccount.name,
+      companyEmail: subAccount.companyEmail ?? "",
+      companyPhone: subAccount.companyPhone,
+      address: subAccount.address,
+      city: subAccount.city,
+      zipCode: subAccount.zipCode,
+      state: subAccount.state,
+      country: subAccount.country,
+      subAccountLogo: subAccount.subAccountLogo,
+      goal: subAccount.goal,
+    },
+
+    create: {
+      id: subAccount.id,
+      agencyId: subAccount.agencyId,
+      name: subAccount.name,
+      companyEmail: subAccount.companyEmail ?? "",
+      companyPhone: subAccount.companyPhone,
+      address: subAccount.address,
+      city: subAccount.city,
+      zipCode: subAccount.zipCode,
+      state: subAccount.state,
+      country: subAccount.country,
+      subAccountLogo: subAccount.subAccountLogo,
+      goal: subAccount.goal,
+      connectAccountId: subAccount.connectAccountId ?? "",
+
+      Permissions: {
         create: {
-            ...subAccount,
-            Permissions: {
-                create: {
-                    access: true,
-                    email: agencyOwner.email,
-                    id: permissionId,
-                },
-                connect: {
-                    subAccountId: subAccount.id,
-                    id: permissionId,
-                },
-            },
-            Pipeline: {
-                create: { name: "Lead Cycle" },
-            },
-            SidebarOption: {
-                create: [
-                    {
-                        name: "Launchpad",
-                        icon: "clipboardIcon",
-                        link: `/subaccount/${subAccount.id}/launchpad`,
-                    },
-                    {
-                        name: "Settings",
-                        icon: "settings",
-                        link: `/subaccount/${subAccount.id}/settings`,
-                    },
-                    {
-                        name: "Funnels",
-                        icon: "pipelines",
-                        link: `/subaccount/${subAccount.id}/funnels`,
-                    },
-                    {
-                        name: "Media",
-                        icon: "database",
-                        link: `/subaccount/${subAccount.id}/media`,
-                    },
-                    {
-                        name: "Automations",
-                        icon: "chip",
-                        link: `/subaccount/${subAccount.id}/automations`,
-                    },
-                    {
-                        name: "Pipelines",
-                        icon: "flag",
-                        link: `/subaccount/${subAccount.id}/pipelines`,
-                    },
-                    {
-                        name: "Contacts",
-                        icon: "person",
-                        link: `/subaccount/${subAccount.id}/contacts`,
-                    },
-                    {
-                        name: "Dashboard",
-                        icon: "category",
-                        link: `/subaccount/${subAccount.id}`,
-                    },
-                ],
-            },
+          id: permissionId,
+          email: agencyOwner.email,
+          access: true,
         },
-    });
+      },
 
-    return response;
+      Pipeline: {
+        create: { name: "Lead Cycle" },
+      },
+
+      SidebarOption: {
+        create: [
+          { name: "Launchpad", icon: "clipboardIcon", link: `/subaccount/${subAccount.id}/launchpad` },
+          { name: "Settings", icon: "settings", link: `/subaccount/${subAccount.id}/settings` },
+          { name: "Funnels", icon: "pipelines", link: `/subaccount/${subAccount.id}/funnels` },
+          { name: "Media", icon: "database", link: `/subaccount/${subAccount.id}/media` },
+          { name: "Automations", icon: "chip", link: `/subaccount/${subAccount.id}/automations` },
+          { name: "Pipelines", icon: "flag", link: `/subaccount/${subAccount.id}/pipelines` },
+          { name: "Contacts", icon: "person", link: `/subaccount/${subAccount.id}/contacts` },
+          { name: "Dashboard", icon: "category", link: `/subaccount/${subAccount.id}` },
+        ],
+      },
+    },
+  });
+
+  return response;
 };
+
 
 export const getUserDetailsByAuthEmail = async (authEmail: AuthUser) => {
     try {
