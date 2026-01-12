@@ -705,32 +705,44 @@ export const upsertFunnel = async (subaccountId: string, funnel: z.infer<typeof 
     return response;
 };
 
-export const upsertLane = async (lane: Prisma.LaneUncheckedCreateInput) => {
-    let order: number;
+export const upsertLane = async (
+  lane: Prisma.LaneUncheckedCreateInput
+) => {
+  if (!lane.name) {
+    throw new Error("Lane name is required");
+  }
 
-    if (!lane.order) {
-        const lanes = await db.lane.findMany({
-            where: {
-                pipelineId: lane.pipelineId,
-            },
-        });
-        order = lanes.length;
-    } else {
-        order = lane.order;
-    }
+  let order: number;
 
-    const response = await db.lane.upsert({
-        where: {
-            id: lane.id || v4(),
-        },
-        update: lane,
-        create: {
-            ...lane,
-            order,
-        },
+  if (lane.order === undefined || lane.order === null) {
+    const lanes = await db.lane.findMany({
+      where: {
+        pipelineId: lane.pipelineId,
+      },
     });
+    order = lanes.length;
+  } else {
+    order = lane.order;
+  }
 
-    return response;
+  const response = await db.lane.upsert({
+    where: {
+      id: lane.id ?? uuid(), // ✅ safe
+    },
+    update: {
+      name: lane.name,       // ✅ REQUIRED FIELD
+      pipelineId: lane.pipelineId,
+      order,
+    },
+    create: {
+      id: lane.id ?? uuid(), // ✅ ensure ID
+      name: lane.name,
+      pipelineId: lane.pipelineId,
+      order,
+    },
+  });
+
+  return response;
 };
 
 export const deleteLane = async (laneId: string) => {
@@ -905,14 +917,40 @@ export const getContact = async (subaccountId: string) => {
     return response;
 };
 
-export const upsertContact = async (contact: Prisma.ContactUncheckedCreateInput) => {
-    const response = await db.contact.upsert({
-        where: { id: contact.id || v4() },
-        update: contact,
-        create: contact,
-    });
+export const upsertContact = async (
+  contact: Prisma.ContactUncheckedCreateInput
+) => {
+  // 🔐 Backend validation (must)
+  if (!contact.name || contact.name.trim() === "") {
+    throw new Error("Contact name is required");
+  }
 
-    return response;
+  if (!contact.email || contact.email.trim() === "") {
+    throw new Error("Contact email is required");
+  }
+
+  if (!contact.subAccountId) {
+    throw new Error("SubAccountId is required");
+  }
+
+  const response = await db.contact.upsert({
+    where: {
+      id: contact.id ?? uuid(),
+    },
+    update: {
+      name: contact.name,
+      email: contact.email,
+      subAccountId: contact.subAccountId,
+    },
+    create: {
+      id: contact.id ?? uuid(),
+      name: contact.name,
+      email: contact.email,
+      subAccountId: contact.subAccountId,
+    },
+  });
+
+  return response;
 };
 
 export const getFunnels = async (subaccountId: string) => {
@@ -955,6 +993,7 @@ export const upsertFunnelPage = async (subaccountId: string, funnelPage: UpsertF
         },
         create: {
             ...funnelPage,
+            name: funnelPage.name,
             content: funnelPage.content
                 ? funnelPage.content
                 : JSON.stringify([

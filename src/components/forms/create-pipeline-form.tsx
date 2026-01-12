@@ -1,4 +1,5 @@
 "use client";
+
 import { saveActivityLogsNotification, upsertPipeline } from "@/lib/queries";
 import { useModal } from "@/providers/modal-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,105 +11,139 @@ import { z } from "zod";
 import Loading from "../global/loading";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../ui/form";
 import { Input } from "../ui/input";
 import { useToast } from "../ui/use-toast";
 
+/* -------------------- PROPS -------------------- */
 interface CreatePipelineFormProps {
-    defaultData?: Pipeline;
-    subAccountId: string;
+  defaultData?: Pipeline;
+  subAccountId: string;
 }
 
+/* -------------------- ZOD SCHEMA -------------------- */
 const CreatePipelineFormSchema = z.object({
-    name: z.string().min(1),
+  name: z.string().min(1, "Pipeline name is required"),
 });
 
-const CreatePipelineForm: React.FC<CreatePipelineFormProps> = ({ defaultData, subAccountId }) => {
-    const { setClose } = useModal();
-    const router = useRouter();
-    const { toast } = useToast();
+/* -------------------- COMPONENT -------------------- */
+const CreatePipelineForm: React.FC<CreatePipelineFormProps> = ({
+  defaultData,
+  subAccountId,
+}) => {
+  const { setClose } = useModal();
+  const router = useRouter();
+  const { toast } = useToast();
 
-    const form = useForm<z.infer<typeof CreatePipelineFormSchema>>({
-        mode: "onChange",
-        resolver: zodResolver(CreatePipelineFormSchema),
-        defaultValues: {
-            name: defaultData?.name || "",
-        },
-    });
+  const form = useForm<z.infer<typeof CreatePipelineFormSchema>>({
+    mode: "onChange",
+    resolver: zodResolver(CreatePipelineFormSchema),
+    defaultValues: {
+      name: defaultData?.name ?? "",
+    },
+  });
 
-    useEffect(() => {
-        if (defaultData) {
-            form.reset({
-                name: defaultData?.name || "",
-            });
-        }
-    }, [defaultData, form]);
+  /* -------------------- RESET ON EDIT -------------------- */
+  useEffect(() => {
+    if (defaultData) {
+      form.reset({
+        name: defaultData.name ?? "",
+      });
+    }
+  }, [defaultData, form]);
 
-    const isLoading = form.formState.isLoading;
+  // ✅ Correct loading flag
+  const isLoading = form.formState.isSubmitting;
 
-    const onSubmit = async (values: z.infer<typeof CreatePipelineFormSchema>) => {
-        if (!subAccountId) return;
+  /* -------------------- SUBMIT -------------------- */
+  const onSubmit = async (
+    values: z.infer<typeof CreatePipelineFormSchema>
+  ) => {
+    if (!subAccountId) return;
 
-        try {
-            const response = await upsertPipeline({
-                ...values,
-                id: defaultData?.id,
-                subAccountId,
-            });
+    try {
+      const response = await upsertPipeline({
+        id: defaultData?.id,
+        name: values.name,
+        subAccountId,
+      });
 
-            await saveActivityLogsNotification({
-                agencyId: undefined,
-                description: `Updated a pipeline | ${response?.name}`,
-                subAccountId,
-            });
+      await saveActivityLogsNotification({
+        agencyId: undefined,
+        description: `Updated a pipeline | ${response?.name}`,
+        subAccountId,
+      });
 
-            toast({
-                title: "Success",
-                description: "Saved pipeline details",
-            });
-            router.refresh();
-        } catch (err) {
-            console.log(err);
-            toast({
-                variant: "destructive",
-                title: "Oppse!",
-                description: "Could not save pipeline details",
-            });
-        }
-        setClose();
-    };
+      toast({
+        title: "Success",
+        description: "Saved pipeline details",
+      });
 
-    return (
-        <Card className="w-full ">
-            <CardHeader>
-                <CardTitle>Pipeline Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                        <FormField
-                            disabled={isLoading}
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Pipeline Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+      router.refresh();
+      setClose();
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Oops!",
+        description: "Could not save pipeline details",
+      });
+    }
+  };
 
-                        <Button className="w-20 mt-4" disabled={isLoading} type="submit">
-                            {form.formState.isSubmitting ? <Loading /> : "Save"}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-    );
+  /* -------------------- UI -------------------- */
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Pipeline Details</CardTitle>
+      </CardHeader>
+
+      <CardContent>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
+          >
+            <FormField
+              disabled={isLoading}
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="pipelineName">
+                    Pipeline Name
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      id="pipelineName"
+                      placeholder="Name"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              className="w-20 mt-4"
+              disabled={isLoading}
+              type="submit"
+            >
+              {isLoading ? <Loading /> : "Save"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default CreatePipelineForm;
