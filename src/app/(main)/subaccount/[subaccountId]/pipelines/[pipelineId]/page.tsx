@@ -1,6 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { db } from "@/lib/db";
-import { getLanesWithTicketAndTags, getPipelineDetails, updateLanesOrder, updateTicketsOrder } from "@/lib/queries";
+import { getLanesWithTicketAndTags, getPipelineDetails, updateLanesOrder, updateTicketsOrder, getAllPipelinesBySubAccount } from "@/lib/queries";
 import { LaneDetails } from "@/lib/types";
 import { redirect } from "next/navigation";
 import React from "react";
@@ -19,11 +18,7 @@ const Page = async ({ params }: Props) => {
         return redirect(`/subaccount/${params.subaccountId}/pipelines`);
     }
 
-    const pipelines = await db.pipeline.findMany({
-        where: {
-            subAccountId: params.subaccountId,
-        },
-    });
+    const pipelines = await getAllPipelinesBySubAccount(params.subaccountId);
 
     const lanes = (await getLanesWithTicketAndTags(params.pipelineId)) as LaneDetails[];
 

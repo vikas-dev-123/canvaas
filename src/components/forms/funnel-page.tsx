@@ -9,7 +9,7 @@ import { Input } from "../ui/input";
 
 import { deleteFunnelsPage, getFunnels, saveActivityLogsNotification, upsertFunnelPage } from "@/lib/queries";
 import { FunnelPageSchema } from "@/lib/types";
-import { FunnelPage } from "@prisma/client";
+import { FunnelPage } from "@/lib/interfaces";
 import { CopyPlusIcon, Trash } from "lucide-react";
 import { v4 } from "uuid";
 import Loading from "../global/loading";

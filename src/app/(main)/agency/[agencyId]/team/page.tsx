@@ -1,10 +1,11 @@
-import { db } from "@/lib/db";
 import React from "react";
 import DataTable from "./data-table";
 import { Plus } from "lucide-react";
 import { currentUser } from "@clerk/nextjs/server";
 import { columns } from "./columns";
 import SendInvitation from "@/components/forms/send-invitation";
+import { AgencyService } from "@/services";
+import { getAuthUserDetails, getUsersWithAgencySubAccountPermissionsSidebarOptions } from "@/lib/queries";
 
 type Props = {
     params: {
@@ -14,27 +15,10 @@ type Props = {
 
 const Page = async ({ params }: Props) => {
     const authUser = await currentUser();
-    const teamMembers = await db.user.findMany({
-        where: {
-            Agency: {
-                id: params.agencyId,
-            },
-        },
-        include: {
-            Agency: { include: { SubAccount: true } },
-            Permissions: { include: { SubAccount: true } },
-        },
-    });
+    const teamMembers = await getUsersWithAgencySubAccountPermissionsSidebarOptions(params.agencyId);
 
     if (!authUser) return null;
-    const agencyDetails = await db.agency.findUnique({
-        where: {
-            id: params.agencyId,
-        },
-        include: {
-            SubAccount: true,
-        },
-    });
+    const agencyDetails = await AgencyService.findById(params.agencyId);
 
     if (!agencyDetails) return;
 

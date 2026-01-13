@@ -1,13 +1,13 @@
 import BlurPage from "@/components/global/blur-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { getStripeOAuthLink } from "@/lib/utils";
 import { CheckCircleIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { SubAccountService } from "@/services";
 
 type Props = {
     searchParams: {
@@ -18,11 +18,7 @@ type Props = {
 };
 
 const Page = async ({ searchParams, params }: Props) => {
-    const subAccountDetails = await db.subAccount.findUnique({
-        where: {
-            id: params.subaccountId,
-        },
-    });
+    const subAccountDetails = await SubAccountService.findById(params.subaccountId);
 
     if (!subAccountDetails) {
         return;
@@ -41,13 +37,8 @@ const Page = async ({ searchParams, params }: Props) => {
                     grant_type: "authorization_code",
                     code: searchParams.code,
                 });
-                await db.subAccount.update({
-                    where: {
-                        id: params.subaccountId,
-                    },
-                    data: {
-                        connectAccountId: response.stripe_user_id,
-                    },
+                await SubAccountService.update(params.subaccountId, {
+                    connectAccountId: response.stripe_user_id,
                 });
                 connectedStripeAccount = true;
             } catch (error) {
@@ -58,11 +49,7 @@ const Page = async ({ searchParams, params }: Props) => {
 
     // Re-fetch subaccount details after Stripe connection
     const updatedSubAccountDetails = connectedStripeAccount 
-        ? await db.subAccount.findUnique({
-            where: {
-                id: params.subaccountId,
-            },
-        })
+        ? await SubAccountService.findById(params.subaccountId)
         : subAccountDetails;
 
     return (
@@ -97,7 +84,7 @@ const Page = async ({ searchParams, params }: Props) => {
                             </div>
                             <div className="flex justify-between items-center w-full h-20 border p-4 rounded-lg">
                                 <div className="flex items-center gap-4">
-                                    <Image src={subAccountDetails.subAccountLogo} alt="App logo" height={80} width={80} className="rounded-md object-contain p-4" />
+                                    <Image src={subAccountDetails.subAccountLogo || "/default-logo.png"} alt="App logo" height={80} width={80} className="rounded-md object-contain p-4" />
                                     <p>Fill in all your business details.</p>
                                 </div>
                                 {allDetailsExist ? (

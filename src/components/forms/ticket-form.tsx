@@ -12,7 +12,7 @@ import { TicketWithTags } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useModal } from "@/providers/modal-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Contact, Tag, User } from "@prisma/client";
+import { Contact, Tag, User } from "@/lib/interfaces";
 import { CheckIcon, ChevronsUpDownIcon, User2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";

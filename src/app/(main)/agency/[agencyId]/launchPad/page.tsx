@@ -1,11 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { getStripeOAuthLink } from "@/lib/utils";
 import { CheckCircleIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { AgencyService } from "@/services";
 
 type Props = {
     params: {
@@ -18,9 +18,7 @@ type Props = {
 };
 
 const Page = async ({ params, searchParams }: Props) => {
-    const agencyDetails = await db.agency.findUnique({
-        where: { id: params.agencyId },
-    });
+    const agencyDetails = await AgencyService.findById(params.agencyId);
 
     if (!agencyDetails) return;
 
@@ -36,13 +34,8 @@ const Page = async ({ params, searchParams }: Props) => {
                     code: searchParams.code,
                 });
 
-                await db.agency.update({
-                    where: {
-                        id: params.agencyId,
-                    },
-                    data: {
-                        connectAccountId: response.stripe_user_id,
-                    },
+                await AgencyService.update(params.agencyId, {
+                    connectAccountId: response.stripe_user_id,
                 });
                 connectedStripeAccount = true;
             } catch (error) {
@@ -53,9 +46,7 @@ const Page = async ({ params, searchParams }: Props) => {
     
     // Re-fetch agency details after Stripe connection
     const updatedAgencyDetails = connectedStripeAccount 
-        ? await db.agency.findUnique({
-            where: { id: params.agencyId },
-        })
+        ? await AgencyService.findById(params.agencyId)
         : agencyDetails;
 
     return (

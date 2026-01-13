@@ -1,6 +1,6 @@
 "use client";
 
-import { Agency } from "@prisma/client";
+import { Agency } from "@/lib/interfaces";
 import React, { useEffect, useState } from "react";
 import { useToast } from "../ui/use-toast";
 import { useRouter } from "next/navigation";
@@ -55,6 +55,7 @@ import {
 
 import { Button } from "../ui/button";
 import Loading from "../global/loading";
+import { Role } from "@/lib/enums";
 
 type Props = {
   data?: Partial<Agency>;
@@ -149,7 +150,7 @@ const AgencyDetails = ({ data }: Props) => {
         const dataRes = await res.json();
         customerId = dataRes.customerId;
 
-        await initUser({ role: "AGENCY_OWNER" });
+        await initUser({ role: Role.AGENCY_OWNER });
       }
 
       await upsertAgency({

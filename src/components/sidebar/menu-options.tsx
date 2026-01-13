@@ -1,7 +1,7 @@
 "use client";
 
 import useMounted from "@/hooks/useMounted";
-import { Agency, AgencySidebarOption, SubAccount, SubAccountSidebarOption } from "@prisma/client";
+import { Agency, AgencySidebarOption, SubAccount, SubAccountSidebarOption } from "@/lib/interfaces";
 import clsx from "clsx";
 import { ChevronsUpDown, Menu, PlusCircleIcon } from "lucide-react";
 import Image from "next/image";

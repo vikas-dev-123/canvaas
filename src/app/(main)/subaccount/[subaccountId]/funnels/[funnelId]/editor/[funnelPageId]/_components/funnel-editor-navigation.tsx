@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "@/components/ui/use-toast";
 import { saveActivityLogsNotification, upsertFunnelPage } from "@/lib/queries";
 import { DeviceTypes, useEditor } from "@/providers/editor/editor-provider";
-import { FunnelPage } from "@prisma/client";
+import { FunnelPage } from "@/lib/interfaces";
 import clsx from "clsx";
 import { ArrowLeftCircle, EyeIcon, Laptop, Redo2, Smartphone, Tablet, Undo2 } from "lucide-react";
 import Link from "next/link";

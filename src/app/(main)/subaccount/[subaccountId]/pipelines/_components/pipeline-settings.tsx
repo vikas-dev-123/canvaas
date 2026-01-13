@@ -1,6 +1,6 @@
 "use client";
 import CreatePipelineForm from "@/components/forms/create-pipeline-form";
-import { Pipeline } from "@prisma/client";
+import { Pipeline } from "@/lib/interfaces";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { Button } from "@/components/ui/button";

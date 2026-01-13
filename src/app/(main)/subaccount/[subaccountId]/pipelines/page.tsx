@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { PipelineService } from "@/services";
 
 
 type Props = {
@@ -9,22 +9,17 @@ type Props = {
 };
 
 const Page = async ({ params }: Props) => {
-    const pipelineExits = await db.pipeline.findFirst({
-        where: {
-            subAccountId: params.subaccountId,
-        },
-    });
+    const pipelineExits = await PipelineService.findBySubAccountId(params.subaccountId);
+    const pipeline = pipelineExits.length > 0 ? pipelineExits[0] : null;
 
-    if (pipelineExits) {
-        return redirect(`/subaccount/${params.subaccountId}/pipelines/${pipelineExits.id}`);
+    if (pipeline) {
+        return redirect(`/subaccount/${params.subaccountId}/pipelines/${pipeline.id}`);
     }
 
     try {
-        const response = await db.pipeline.create({
-            data: {
-                name: `First Pipeline`,
-                subAccountId: params.subaccountId,
-            },
+        const response = await PipelineService.create({
+            name: `First Pipeline`,
+            subAccountId: params.subaccountId,
         });
 
         return redirect(`/subaccount/${params.subaccountId}/pipelines/${response.id}`);

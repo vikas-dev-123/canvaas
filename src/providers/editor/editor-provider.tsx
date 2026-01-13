@@ -1,6 +1,6 @@
 "use client";
 import { EditorBtns } from "@/lib/constant";
-import { FunnelPage } from "@prisma/client";
+import { FunnelPage } from "@/lib/interfaces";
 import { createContext, Dispatch, useContext, useReducer } from "react";
 import { EditorAction } from "./editor-actions";
 

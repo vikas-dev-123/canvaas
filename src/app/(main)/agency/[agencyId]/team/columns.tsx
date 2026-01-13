@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { deleteUser, getUser } from "@/lib/queries";
 import { UsersWithAgencySubAccountPermissionsSidebarOptions } from "@/lib/types";
 import { useModal } from "@/providers/modal-provider";
-import { Role } from "@prisma/client";
+import { Role } from "@/lib/interfaces";
 import { ColumnDef } from "@tanstack/react-table";
 import clsx from "clsx";
 import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";

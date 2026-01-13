@@ -1,5 +1,5 @@
 "use client";
-import { Media } from "@prisma/client";
+import { Media } from "@/lib/interfaces";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";

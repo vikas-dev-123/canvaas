@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import { saveActivityLogsNotification, updateFunnelProducts } from "@/lib/queries";
-import { Funnel } from "@prisma/client";
+import { Funnel } from "@/lib/interfaces";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";

@@ -1,10 +1,10 @@
-import { db } from "@/lib/db";
 import EditorProvider from "@/providers/editor/editor-provider";
 import { redirect } from "next/navigation";
 import React from "react";
 import FunnelEditorNavigation from "./_components/funnel-editor-navigation";
 import FunnelEditorSidebar from "./_components/funnel-editor-sidebar";
 import FunnelEditor from "./_components/funnel-editor";
+import { FunnelPageService } from "@/services";
 
 type Props = {
     params: {
@@ -15,11 +15,7 @@ type Props = {
 };
 
 const Page = async ({ params }: Props) => {
-    const funnelPageDetails = await db.funnelPage.findFirst({
-        where: {
-            id: params.funnelPageId,
-        },
-    });
+    const funnelPageDetails = await FunnelPageService.findById(params.funnelPageId);
 
     if (!funnelPageDetails) {
         return redirect(`/subaccount/${params.subaccountId}/funnels/${params.funnelId}`);

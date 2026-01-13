@@ -17,7 +17,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
-import { Lane } from "@prisma/client";
+import { Lane } from "@/lib/interfaces";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import Loading from "../global/loading";

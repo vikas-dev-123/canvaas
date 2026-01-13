@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { FunnelPage } from "@prisma/client";
+import { FunnelPage } from "@/lib/interfaces";
 import { ArrowDown, Mail } from "lucide-react";
 import React from "react";
 import { Draggable } from "react-beautiful-dnd";

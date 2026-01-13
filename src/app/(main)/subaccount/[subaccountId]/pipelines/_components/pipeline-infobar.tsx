@@ -6,7 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useModal } from "@/providers/modal-provider";
-import { Pipeline } from "@prisma/client";
+import { Pipeline } from "@/lib/interfaces";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

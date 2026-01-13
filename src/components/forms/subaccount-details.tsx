@@ -1,6 +1,6 @@
 "use client";
 
-import { Agency, SubAccount } from "@prisma/client";
+import { Agency, SubAccount } from "@/lib/interfaces";
 import React, { useEffect } from "react";
 import { useToast } from "../ui/use-toast";
 import { useModal } from "@/providers/modal-provider";

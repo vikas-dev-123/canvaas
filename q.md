@@ -1,0 +1,1483 @@
+//queries files related to prisma 
+
+
+"use server";
+
+import type { User as AuthUser } from "@clerk/nextjs/server";
+import { clerkClient, currentUser } from "@clerk/nextjs/server";
+import { Agency, Funnel, Lane, Plan, Prisma, Role, SubAccount, Ticket, User } from "@prisma/client";
+import { redirect } from "next/navigation";
+import { v4 } from "uuid";
+import { db } from "./db";
+import { CreateFunnelFormSchema, CreateMediaType, CreatePipeLineType, UpsertFunnelPage } from "./types";
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+
+type UpsertSubAccountInput = {
+  id: string;
+  agencyId: string;
+  name: string;
+  companyEmail?: string;
+  companyPhone: string;
+  address: string;
+  city: string;
+  zipCode: string;
+  state: string;
+  country: string;
+  subAccountLogo?: string;
+  goal: number;
+  connectAccountId?: string;
+};
+
+
+export const getUser = async (id: string) => {
+    const user = await db.user.findUnique({
+        where: {
+            id,
+        },
+    });
+
+    return user;
+};
+
+export const deleteUser = async (userId: string) => {
+    try {
+        const clerk = await clerkClient();
+        await clerk.users.updateUserMetadata(userId, {
+            privateMetadata: {
+                role: undefined,
+            },
+        });
+    } catch (error) {
+        console.error('Error updating user metadata:', error);
+    }
+    const deletedUser = await db.user.delete({ where: { id: userId } });
+    return deletedUser;
+};
+
+export const getAuthUserDetails = async () => {
+    const user = await currentUser();
+
+    if (!user) {
+        return;
+    }
+
+    const userData = await db.user.findUnique({
+        where: {
+            email: user.emailAddresses[0].emailAddress,
+        },
+        include: {
+            Agency: {
+                include: {
+                    SidebarOption: true,
+                    SubAccount: {
+                        include: {
+                            SidebarOption: true,
+                        },
+                    },
+                },
+            },
+            Permissions: true,
+        },
+    });
+
+    return userData;
+};
+
+export const getUserRoleFromDatabase = async () => {
+    const user = await currentUser();
+
+    if (!user) {
+        return null;
+    }
+
+    const userData = await db.user.findUnique({
+        where: {
+            email: user.emailAddresses[0].emailAddress,
+        },
+        select: {
+            role: true,
+            agencyId: true,
+        },
+    });
+
+    return userData;
+};
+
+export const saveActivityLogsNotification = async ({ agencyId, description, subAccountId }: { agencyId?: String; description?: String; subAccountId?: String }) => {
+    const authUser = await currentUser();
+    let userData;
+    if (!authUser) {
+        const response = await db.user.findFirst({
+            where: {
+                Agency: {
+                    SubAccount: {
+                        some: { id: subAccountId },
+                    },
+                },
+            },
+        });
+        if (response) {
+            userData = response;
+        }
+    } else {
+        userData = await db.user.findUnique({
+            where: { email: authUser?.emailAddresses[0].emailAddress },
+        });
+    }
+
+    if (!userData) {
+        console.log("Could not find a user");
+        return;
+    }
+
+    let foundAgencyId = agencyId;
+    if (!foundAgencyId) {
+        if (!subAccountId) {
+            throw new Error("You need to provide at least an agency Id or subAccount id");
+        }
+
+        const response = await db.subAccount.findUnique({
+            where: {
+                id: subAccountId,
+            },
+        });
+
+        if (response) foundAgencyId = response.agencyId;
+    }
+
+    if (subAccountId) {
+        await db.notification.create({
+            data: {
+                notification: `${userData.name} | ${description}`,
+                User: {
+                    connect: {
+                        id: userData.id,
+                    },
+                },
+                Agency: {
+                    connect: {
+                        id: foundAgencyId,
+                    },
+                },
+                SubAccount: {
+                    connect: {
+                        id: subAccountId,
+                    },
+                },
+            },
+        });
+    } else {
+        await db.notification.create({
+            data: {
+                notification: `${userData.name} | ${description}`,
+                User: {
+                    connect: {
+                        id: userData.id,
+                    },
+                },
+                Agency: {
+                    connect: {
+                        id: foundAgencyId,
+                    },
+                },
+            },
+        });
+    }
+};
+
+export const updateUser = async (user: Partial<User>) => {
+    const response = await db.user.update({
+        where: {
+            email: user.email,
+        },
+        data: {
+            ...user,
+        },
+    });
+    try {
+        const clerk = await clerkClient();
+        await clerk.users.updateUserMetadata(response.id, {
+            publicMetadata: {
+                role: user.role || "SUBACCOUNT_USER",
+            },
+        });
+    } catch (error) {
+        console.error('Error updating user metadata:', error);
+    }
+
+    return response;
+};
+
+export const changeUserPermission = async (permissionId: string, userEmail: string, subAccountId: string, permission: boolean) => {
+    try {
+        const response = await db.permissions.upsert({
+            where: {
+                id: permissionId,
+            },
+            update: {
+                access: permission,
+            },
+            create: {
+                access: permission,
+                email: userEmail,
+                subAccountId: subAccountId,
+            },
+        });
+        return response;
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+export const createTeamUser = async (user: User) => {
+    if (user.role === "AGENCY_OWNER") return null;
+    const response = await db.user.create({ data: { ...user } });
+    return response;
+};
+
+export const verifyAndAcceptInvitation = async () => {
+    const user = await currentUser();
+
+    if (!user) {
+        redirect("/sign-in");
+    }
+    const invitationExists = await db.invitation.findUnique({
+        where: {
+            email: user.emailAddresses[0].emailAddress,
+            status: "PENDING",
+        },
+    });
+
+    if (invitationExists) {
+        const exitsUser = await getAuthUserDetails();
+
+        if (exitsUser) {
+            return exitsUser.agencyId;
+        }
+
+        const userDetails = await createTeamUser({
+            email: invitationExists.email,
+            agencyId: invitationExists.agencyId,
+            avatarUrl: user.imageUrl,
+            id: user.id,
+            name: `${user.firstName} ${user.lastName}`,
+            role: invitationExists.role,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+        await saveActivityLogsNotification({
+            agencyId: invitationExists?.agencyId,
+            description: "Joined",
+            subAccountId: undefined,
+        });
+        if (userDetails) {
+            try {
+                const clerk = await clerkClient();
+                await clerk.users.updateUserMetadata(user.id, {
+                    privateMetadata: {
+                        role: userDetails.role || "SUBACCOUNT_USER",
+                    },
+                });
+            } catch (error) {
+                console.error('Error updating user metadata:', error);
+            }
+            await db.invitation.delete({
+                where: {
+                    email: userDetails.email,
+                },
+            });
+            return userDetails.agencyId;
+        } else {
+            return null;
+        }
+    } else {
+        const agency = await db.user.findUnique({
+            where: {
+                email: user.emailAddresses[0].emailAddress,
+            },
+        });
+
+        return agency ? agency.agencyId : null;
+    }
+};
+
+export const updateAgencyDetails = async (agencyId: string, agencyDetails: Partial<Agency>) => {
+    const response = await db.agency.update({
+        where: { id: agencyId },
+        data: { ...agencyDetails },
+    });
+    return response;
+};
+
+export const getAgencyDetails = async (agencyId: string) => {
+    const response = await db.agency.findUnique({
+        where: { id: agencyId },
+        include: {
+            SubAccount: true,
+        },
+    });
+    return response;
+};
+
+export const deleteAgency = async (agencyId: string) => {
+    const response = await db.agency.delete({
+        where: {
+            id: agencyId,
+        },
+    });
+    return response;
+};
+
+export const initUser = async (newUser: Partial<User>) => {
+    const user = await currentUser();
+    if (!user) return;
+
+    const userData = await db.user.upsert({
+        where: {
+            email: user.emailAddresses[0].emailAddress,
+        },
+        update: newUser,
+        create: {
+            id: user.id,
+            avatarUrl: user.imageUrl,
+            email: user.emailAddresses[0].emailAddress,
+            name: `${user.firstName} ${user.lastName}`,
+            role: newUser.role || "SUBACCOUNT_USER",
+        },
+    });
+
+    try {
+        const clerk = await clerkClient();
+        if (clerk.users && user.id) {
+            await clerk.users.updateUserMetadata(user.id, {
+                privateMetadata: {
+                    role: newUser.role || "SUBACCOUNT_USER",
+                },
+            });
+        }
+    } catch (error) {
+        console.error('Error updating user metadata:', error);
+    }
+
+    return userData;
+};
+
+export const upsertAgency = async (agency: Agency, price?: Plan) => {
+    if (!agency.companyEmail) return null;
+
+    try {
+        const agencyDetails = await db.agency.upsert({
+            where: {
+                id: agency.id,
+            },
+            update: agency,
+            create: {
+                users: {
+                    connect: {
+                        email: agency.companyEmail,
+                    },
+                },
+                ...agency,
+                SidebarOption: {
+                    create: [
+                        {
+                            name: "Dashboard",
+                            icon: "category",
+                            link: `/agency/${agency.id}`,
+                        },
+                        {
+                            name: "Launchpad",
+                            icon: "clipboardIcon",
+                            link: `/agency/${agency.id}/launchpad`,
+                        },
+                        {
+                            name: "Billing",
+                            icon: "payment",
+                            link: `/agency/${agency.id}/billing`,
+                        },
+                        {
+                            name: "Settings",
+                            icon: "settings",
+                            link: `/agency/${agency.id}/settings`,
+                        },
+                        {
+                            name: "Sub Accounts",
+                            icon: "person",
+                            link: `/agency/${agency.id}/all-subaccounts`,
+                        },
+                        {
+                            name: "Team",
+                            icon: "shield",
+                            link: `/agency/${agency.id}/team`,
+                        },
+                    ],
+                },
+            },
+        });
+
+        return agencyDetails;
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+export const getNotificationAndUser = async (agencyId: string) => {
+    try {
+        const response = await db.notification.findMany({
+            where: {
+                agencyId,
+            },
+            include: {
+                User: true,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+        return response;
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+export const upsertSubAccount = async (subAccount: UpsertSubAccountInput) => {
+  const agencyOwner = await db.user.findFirst({
+    where: {
+      Agency: { id: subAccount.agencyId },
+      role: "AGENCY_OWNER",
+    },
+  });
+
+  if (!agencyOwner) {
+    throw new Error("No agency owner found");
+  }
+
+  const permissionId = v4();
+
+  const response = await db.subAccount.upsert({
+    where: { id: subAccount.id },
+
+    update: {
+      name: subAccount.name,
+      companyEmail: subAccount.companyEmail ?? "",
+      companyPhone: subAccount.companyPhone,
+      address: subAccount.address,
+      city: subAccount.city,
+      zipCode: subAccount.zipCode,
+      state: subAccount.state,
+      country: subAccount.country,
+      subAccountLogo: subAccount.subAccountLogo,
+      goal: subAccount.goal,
+    },
+
+    create: {
+      id: subAccount.id,
+      agencyId: subAccount.agencyId,
+      name: subAccount.name,
+      companyEmail: subAccount.companyEmail ?? "",
+      companyPhone: subAccount.companyPhone,
+      address: subAccount.address,
+      city: subAccount.city,
+      zipCode: subAccount.zipCode,
+      state: subAccount.state,
+      country: subAccount.country,
+      subAccountLogo: subAccount.subAccountLogo,
+      goal: subAccount.goal,
+      connectAccountId: subAccount.connectAccountId ?? "",
+
+      Permissions: {
+        create: {
+          id: permissionId,
+          email: agencyOwner.email,
+          access: true,
+        },
+      },
+
+      Pipeline: {
+        create: { name: "Lead Cycle" },
+      },
+
+      SidebarOption: {
+        create: [
+          { name: "Launchpad", icon: "clipboardIcon", link: `/subaccount/${subAccount.id}/launchpad` },
+          { name: "Settings", icon: "settings", link: `/subaccount/${subAccount.id}/settings` },
+          { name: "Funnels", icon: "pipelines", link: `/subaccount/${subAccount.id}/funnels` },
+          { name: "Media", icon: "database", link: `/subaccount/${subAccount.id}/media` },
+          { name: "Automations", icon: "chip", link: `/subaccount/${subAccount.id}/automations` },
+          { name: "Pipelines", icon: "flag", link: `/subaccount/${subAccount.id}/pipelines` },
+          { name: "Contacts", icon: "person", link: `/subaccount/${subAccount.id}/contacts` },
+          { name: "Dashboard", icon: "category", link: `/subaccount/${subAccount.id}` },
+        ],
+      },
+    },
+  });
+
+  return response;
+};
+
+
+export const getUserDetailsByAuthEmail = async (authEmail: AuthUser) => {
+    try {
+        const response = await db.user.findUnique({
+            where: {
+                email: authEmail.emailAddresses[0].emailAddress,
+            },
+        });
+
+        return response;
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+export const getUserPermissions = async (userId: string) => {
+    const response = await db.user.findUnique({
+        where: { id: userId },
+        select: {
+            Permissions: {
+                include: {
+                    SubAccount: true,
+                },
+            },
+        },
+    });
+
+    return response;
+};
+
+export const getSubAccountDetails = async (subaccountId: string) => {
+    const response = await db.subAccount.findUnique({
+        where: { id: subaccountId },
+    });
+
+    return response;
+};
+
+export const deleteSubAccount = async (subaccountId: string) => {
+    const response = await db.subAccount.delete({
+        where: {
+            id: subaccountId,
+        },
+    });
+
+    return response;
+};
+
+export const sendInvitation = async (role: Role, email: string, agencyId: string) => {
+    const response = await db.invitation.create({
+        data: {
+            email,
+            agencyId,
+            role,
+        },
+    });
+
+    try {
+        const clerk = await clerkClient();
+        await clerk.invitations.createInvitation({
+            emailAddress: email,
+            redirectUrl: process.env.NEXT_PUBLIC_URL,
+            publicMetadata: {
+                throwDeprecation: true,
+                role,
+            },
+        });
+    } catch (err) {
+        console.log(err);
+        throw err;
+    }
+    return response;
+};
+
+export const getMedia = async (subaccountId: string) => {
+    const response = await db.subAccount.findUnique({
+        where: {
+            id: subaccountId,
+        },
+        include: {
+            Media: true,
+        },
+    });
+    return response;
+};
+
+export const createMedia = async (subaccountId: string, media: CreateMediaType) => {
+    const response = await db.media.create({
+        data: {
+            link: media.link,
+            name: media.name,
+            subAccountId: subaccountId,
+        },
+    });
+
+    return response;
+};
+
+export const deleteMedia = async (mediaId: string) => {
+    const response = await db.media.delete({
+        where: {
+            id: mediaId,
+        },
+    });
+    return response;
+};
+
+export const getPipelineDetails = async (pipelineId: string) => {
+    const response = await db.pipeline.findUnique({
+        where: {
+            id: pipelineId,
+        },
+    });
+
+    return response;
+};
+
+export const deletePipeline = async (pipelineId: string) => {
+    const response = await db.pipeline.delete({
+        where: {
+            id: pipelineId,
+        },
+    });
+
+    return response;
+};
+
+export const getLanesWithTicketAndTags = async (pipelineId: string) => {
+    const response = await db.lane.findMany({
+        where: {
+            pipelineId,
+        },
+        orderBy: {
+            order: "asc",
+        },
+        include: {
+            Tickets: {
+                orderBy: {
+                    order: "asc",
+                },
+                include: {
+                    Tags: true,
+                    Assigned: true,
+                    Customer: true,
+                },
+            },
+        },
+    });
+
+    return response;
+};
+
+export const upsertPipeline = async (pipeline: CreatePipeLineType) => {
+    const response = await db.pipeline.upsert({
+        where: {
+            id: pipeline.id || v4(),
+        },
+        create: pipeline,
+        update: pipeline,
+    });
+
+    return response;
+};
+
+export const getTicketsWithTags = async (pipelineId: string) => {
+    const response = await db.ticket.findMany({
+        where: {
+            Lane: {
+                pipelineId,
+            },
+        },
+        include: { Tags: true, Assigned: true, Customer: true },
+    });
+    return response;
+};
+
+export const upsertFunnel = async (subaccountId: string, funnel: z.infer<typeof CreateFunnelFormSchema> & { liveProducts: string }, funnelId: string) => {
+    const response = await db.funnel.upsert({
+        where: {
+            id: funnelId,
+        },
+        update: funnel,
+        create: {
+            ...funnel,
+            id: funnelId || v4(),
+            subAccountId: subaccountId,
+        },
+    });
+
+    return response;
+};
+
+export const upsertLane = async (
+  lane: Prisma.LaneUncheckedCreateInput
+) => {
+  if (!lane.name) {
+    throw new Error("Lane name is required");
+  }
+
+  let order: number;
+
+  if (lane.order === undefined || lane.order === null) {
+    const lanes = await db.lane.findMany({
+      where: {
+        pipelineId: lane.pipelineId,
+      },
+    });
+    order = lanes.length;
+  } else {
+    order = lane.order;
+  }
+
+  const response = await db.lane.upsert({
+    where: {
+      id: lane.id ?? uuid(), // ✅ safe
+    },
+    update: {
+      name: lane.name,       // ✅ REQUIRED FIELD
+      pipelineId: lane.pipelineId,
+      order,
+    },
+    create: {
+      id: lane.id ?? uuid(), // ✅ ensure ID
+      name: lane.name,
+      pipelineId: lane.pipelineId,
+      order,
+    },
+  });
+
+  return response;
+};
+
+export const deleteLane = async (laneId: string) => {
+    const response = await db.lane.delete({
+        where: {
+            id: laneId,
+        },
+    });
+    return response;
+};
+
+export const updateLanesOrder = async (lanes: Lane[]) => {
+    try {
+        const updateTrans = lanes.map((lane) =>
+            db.lane.update({
+                where: { id: lane.id },
+                data: { order: lane.order },
+            })
+        );
+
+        await db.$transaction(updateTrans);
+        console.log("🟢 Done reordered 🟢");
+    } catch (error) {
+        console.log(error, "ERROR UPDATE LANES ORDER");
+    }
+};
+
+export const updateTicketsOrder = async (tickets: Ticket[]) => {
+    try {
+        const updateTrans = tickets.map((ticket) =>
+            db.ticket.update({
+                where: { id: ticket.id },
+                data: { order: ticket.order, laneId: ticket.laneId },
+            })
+        );
+
+        await db.$transaction(updateTrans);
+        console.log("🟢 Done reordered 🟢");
+    } catch (error) {
+        console.log(error, "ERROR UPDATE TICKETS ORDER");
+    }
+};
+
+export const deleteTicket = async (ticketId: string) => {
+    const response = await db.ticket.delete({
+        where: {
+            id: ticketId,
+        },
+    });
+
+    return response;
+};
+
+export const _getTicketsWithAllRelations = async (laneId: string) => {
+    const response = await db.ticket.findMany({
+        where: { laneId: laneId },
+        include: {
+            Assigned: true,
+            Customer: true,
+            Lane: true,
+            Tags: true,
+        },
+    });
+    return response;
+};
+
+export const getSubAccountTeamMembers = async (subaccountId: string) => {
+    const subaccountUsersWithAccess = await db.user.findMany({
+        where: {
+            Agency: {
+                SubAccount: {
+                    some: {
+                        id: subaccountId,
+                    },
+                },
+            },
+            role: "SUBACCOUNT_USER",
+            Permissions: {
+                some: {
+                    subAccountId: subaccountId,
+                    access: true,
+                },
+            },
+        },
+    });
+    return subaccountUsersWithAccess;
+};
+
+export const searchContacts = async (searchTerms: string) => {
+    const response = await db.contact.findMany({
+        where: {
+            name: {
+                contains: searchTerms,
+            },
+        },
+    });
+    return response;
+};
+
+export const upsertTicket = async (ticket: Prisma.TicketUncheckedCreateInput, tags: Tag[]) => {
+    let order: number;
+    if (!ticket.order) {
+        const tickets = await db.ticket.findMany({
+            where: { laneId: ticket.laneId },
+        });
+        order = tickets.length;
+    } else {
+        order = ticket.order;
+    }
+
+    const response = await db.ticket.upsert({
+        where: {
+            id: ticket.id || v4(),
+        },
+        update: { ...ticket, Tags: { set: tags } },
+        create: { ...ticket, Tags: { connect: tags }, order },
+        include: {
+            Assigned: true,
+            Customer: true,
+            Tags: true,
+            Lane: true,
+        },
+    });
+
+    return response;
+};
+
+export const upsertTag = async (subaccountId: string, tag: Prisma.TagUncheckedCreateInput) => {
+    const response = await db.tag.upsert({
+        where: { id: tag.id || v4(), subAccountId: subaccountId },
+        update: tag,
+        create: { ...tag, subAccountId: subaccountId },
+    });
+
+    return response;
+};
+
+export const getTagsForSubaccount = async (subaccountId: string) => {
+    const response = await db.subAccount.findUnique({
+        where: { id: subaccountId },
+        select: { Tags: true },
+    });
+    return response;
+};
+
+export const deleteTag = async (tagId: string) => {
+    const response = await db.tag.delete({ where: { id: tagId } });
+    return response;
+};
+
+export const getContact = async (subaccountId: string) => {
+    const response = await db.subAccount.findUnique({
+        where: {
+            id: subaccountId,
+        },
+        include: {
+            Contact: {
+                include: {
+                    Ticket: {
+                        select: {
+                            value: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    createdAt: "asc",
+                },
+            },
+        },
+    });
+
+    return response;
+};
+
+export const upsertContact = async (
+  contact: Prisma.ContactUncheckedCreateInput
+) => {
+  // 🔐 Backend validation (must)
+  if (!contact.name || contact.name.trim() === "") {
+    throw new Error("Contact name is required");
+  }
+
+  if (!contact.email || contact.email.trim() === "") {
+    throw new Error("Contact email is required");
+  }
+
+  if (!contact.subAccountId) {
+    throw new Error("SubAccountId is required");
+  }
+
+  const response = await db.contact.upsert({
+    where: {
+      id: contact.id ?? uuid(),
+    },
+    update: {
+      name: contact.name,
+      email: contact.email,
+      subAccountId: contact.subAccountId,
+    },
+    create: {
+      id: contact.id ?? uuid(),
+      name: contact.name,
+      email: contact.email,
+      subAccountId: contact.subAccountId,
+    },
+  });
+
+  return response;
+};
+
+export const getFunnels = async (subaccountId: string) => {
+    const response = await db.funnel.findMany({
+        where: {
+            subAccountId: subaccountId,
+        },
+        include: {
+            FunnelPages: true,
+        },
+    });
+
+    return response;
+};
+
+export const getFunnel = async (funnelId: string) => {
+    const funnel = await db.funnel.findUnique({
+        where: { id: funnelId },
+        include: {
+            FunnelPages: {
+                orderBy: {
+                    order: "asc",
+                },
+            },
+        },
+    });
+
+    return funnel;
+};
+
+export const upsertFunnelPage = async (subaccountId: string, funnelPage: UpsertFunnelPage, funnelId: string) => {
+    if (!subaccountId || !funnelId) return;
+
+    const response = await db.funnelPage.upsert({
+        where: {
+            id: funnelPage.id || "",
+        },
+        update: {
+            ...funnelPage,
+        },
+        create: {
+            ...funnelPage,
+            name: funnelPage.name,
+            content: funnelPage.content
+                ? funnelPage.content
+                : JSON.stringify([
+                      {
+                          content: [],
+                          id: "__body",
+                          name: "Body",
+                          styles: {
+                              backgroundColor: "white",
+                              type: "_body",
+                          },
+                      },
+                  ]),
+            funnelId,
+        },
+    });
+
+    revalidatePath(`/subaccount/${subaccountId}/funnels/${funnelId}`);
+    return response;
+};
+
+export const deleteFunnelsPage = async (funnelPageId: string) => {
+    const response = await db.funnelPage.delete({
+        where: {
+            id: funnelPageId,
+        },
+    });
+
+    return response;
+};
+
+export const updateFunnelProducts = async (products: string, funnelId: string) => {
+    const data = await db.funnel.update({
+        where: { id: funnelId },
+        data: { liveProducts: products },
+    });
+
+    return data;
+};
+
+export const getFunnelPageDetails = async (funnelPageId: string) => {
+    const data = await db.funnelPage.findUnique({
+        where: {
+            id: funnelPageId,
+        },
+    });
+    return data;
+};
+
+//schema of prisma
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  AGENCY_OWNER
+  AGENCY_ADMIN
+  SUBACCOUNT_USER
+  SUBACCOUNT_GUEST
+}
+
+enum Icon {
+  settings
+  chart
+  calendar
+  check
+  chip
+  compass
+  database
+  flag
+  home
+  info
+  link
+  lock
+  messages
+  notification
+  payment
+  power
+  receipt
+  shield
+  star
+  tune
+  videorecorder
+  wallet
+  warning
+  headphone
+  send
+  pipelines
+  person
+  category
+  contact
+  clipboardIcon
+}
+
+model User {
+  id           String         @id @default(uuid())
+  name         String
+  avatarUrl    String         @db.Text
+  email        String         @unique
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  role         Role           @default(SUBACCOUNT_USER)
+  agencyId     String?
+  Agency       Agency?        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  Permissions  Permissions[]
+  Ticket       Ticket[]
+  Notification Notification[]
+
+  @@index([agencyId])
+}
+
+model Permissions {
+  id           String     @id @default(uuid())
+  email        String
+  User         User       @relation(fields: [email], references: [email], onDelete: Cascade)
+  subAccountId String
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  access       Boolean
+
+  @@index([subAccountId])
+  @@index([email])
+}
+
+model Agency {
+  id               String                @id @default(uuid())
+  connectAccountId String?               @default("")
+  customerId       String                @default("")
+  name             String
+  agencyLogo       String                @db.Text
+  companyEmail     String                @db.Text
+  companyPhone     String
+  whiteLabel       Boolean               @default(true)
+  address          String
+  city             String
+  zipCode          String
+  state            String
+  country          String
+  goal             Int                   @default(5)
+  users            User[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  SubAccount       SubAccount[]
+  SidebarOption    AgencySidebarOption[]
+  Invitation       Invitation[]
+  Notification     Notification[]
+  Subscription     Subscription?
+  AddOns           AddOns[]
+}
+
+model SubAccount {
+  id               String                    @id @default(uuid())
+  connectAccountId String?                   @default("")
+  name             String
+  subAccountLogo   String                    @db.Text
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  companyEmail     String                    @db.Text
+  companyPhone     String
+  goal             Int                       @default(5)
+  address          String
+  city             String
+  zipCode          String
+  state            String
+  country          String
+  agencyId         String
+  Agency           Agency                    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  SidebarOption    SubAccountSidebarOption[]
+  Permissions      Permissions[]
+  Funnels          Funnel[]
+  Media            Media[]
+  Contact          Contact[]
+  Trigger          Trigger[]
+  Automation       Automation[]
+  Pipeline         Pipeline[]
+  Tags             Tag[]
+  Notification     Notification[]
+
+  @@index([agencyId])
+}
+
+model Tag {
+  id           String   @id @default(uuid())
+  name         String
+  color        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  subAccountId String
+
+  SubAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  Ticket     Ticket[]
+
+  @@index([subAccountId])
+}
+
+model Pipeline {
+  id           String     @id @default(uuid())
+  name         String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  Lane         Lane[]
+  SubAccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  subAccountId String
+
+  @@index([subAccountId])
+}
+
+model Lane {
+  id         String   @id @default(uuid())
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  Pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipelineId String
+  Tickets    Ticket[]
+  order      Int      @default(0)
+
+  @@index([pipelineId])
+}
+
+model Ticket {
+  id          String   @id @default(uuid())
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  laneId      String
+  order       Int      @default(0)
+  Lane        Lane     @relation(fields: [laneId], references: [id], onDelete: Cascade)
+  value       Decimal?
+  description String?
+  Tags        Tag[]
+
+  customerId String?
+  Customer   Contact? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  assignedUserId String?
+  Assigned       User?   @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+
+  @@index([laneId])
+  @@index([customerId])
+  @@index([assignedUserId])
+}
+
+enum TriggerTypes {
+  CONTACT_FORM
+}
+
+model Trigger {
+  id           String       @id @default(uuid())
+  name         String
+  type         TriggerTypes
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  subAccountId String
+  Subaccount   SubAccount   @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  Automations  Automation[]
+
+  @@index([subAccountId])
+}
+
+model Automation {
+  id                 String               @id @default(uuid())
+  name               String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  triggerId          String?
+  published          Boolean              @default(false)
+  Trigger            Trigger?             @relation(fields: [triggerId], references: [id], onDelete: Cascade)
+  subAccountId       String
+  Subaccount         SubAccount           @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  Action             Action[]
+  AutomationInstance AutomationInstance[]
+
+  @@index([triggerId])
+  @@index([subAccountId])
+}
+
+model AutomationInstance {
+  id           String     @id @default(uuid())
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  automationId String
+  Automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  active       Boolean    @default(false)
+
+  @@index([automationId])
+}
+
+enum ActionType {
+  CREATE_CONTACT
+}
+
+model Action {
+  id           String     @id @default(uuid())
+  name         String
+  type         ActionType
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  automationId String
+  order        Int
+  Automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  laneId       String     @default("0")
+
+  @@index([automationId])
+}
+
+model Contact {
+  id           String   @id @default(uuid())
+  name         String
+  email        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  subAccountId String
+
+  Subaccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  Ticket     Ticket[]
+
+  @@index([subAccountId])
+}
+
+model Media {
+  id           String     @id @default(uuid())
+  type         String?
+  name         String
+  link         String     @unique
+  subAccountId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  Subaccount   SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  @@index([subAccountId])
+}
+
+model Funnel {
+  id            String       @id @default(uuid())
+  name          String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  description   String?
+  published     Boolean      @default(false)
+  subDomainName String?      @unique
+  favicon       String?      @db.Text
+  subAccountId  String
+  SubAccount    SubAccount   @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  FunnelPages   FunnelPage[]
+  liveProducts  String?      @default("[]")
+  ClassName     ClassName[]
+
+  @@index([subAccountId])
+}
+
+model ClassName {
+  id         String   @id @default(uuid())
+  name       String
+  color      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  funnelId   String
+  customData String?  @db.LongText
+  Funnel     Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@index([funnelId])
+}
+
+model FunnelPage {
+  id           String   @id @default(uuid())
+  name         String
+  pathName     String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  visits       Int      @default(0)
+  content      String?  @db.LongText
+  order        Int
+  previewImage String?  @db.Text
+  funnelId     String
+  Funnel       Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@index([funnelId])
+}
+
+model AgencySidebarOption {
+  id        String   @id @default(uuid())
+  name      String   @default("Menu")
+  link      String   @default("#")
+  icon      Icon     @default(info)
+  agencyId  String
+  Agency    Agency?  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId])
+}
+
+model SubAccountSidebarOption {
+  id           String      @id @default(uuid())
+  name         String      @default("Menu")
+  link         String      @default("#")
+  icon         Icon        @default(info)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  SubAccount   SubAccount? @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  subAccountId String?
+
+  @@index([subAccountId])
+}
+
+enum InvitationStatus {
+  ACCEPTED
+  REVOKED
+  PENDING
+}
+
+model Invitation {
+  id       String           @id @default(uuid())
+  email    String           @unique
+  agencyId String
+  Agency   Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  status   InvitationStatus @default(PENDING)
+  role     Role             @default(SUBACCOUNT_USER)
+
+  @@index([agencyId])
+}
+
+model Notification {
+  id           String  @id @default(uuid())
+  notification String
+  agencyId     String
+  subAccountId String?
+  userId       String
+
+  User       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Agency     Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  SubAccount SubAccount? @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId])
+  @@index([subAccountId])
+  @@index([userId])
+}
+
+enum Plan {
+  price_1So4KtIhbb6nGqcYf1nJu3V3
+  price_1So4IcIhbb6nGqcYi4Z9dSfP
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  plan      Plan?
+  price     String?
+  active    Boolean  @default(false)
+
+  priceId              String
+  customerId           String
+  currentPeriodEndDate DateTime
+  subscritiptionId     String   @unique
+
+  agencyId String? @unique
+  Agency   Agency? @relation(fields: [agencyId], references: [id])
+
+  @@index([customerId])
+}
+
+model AddOns {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  active    Boolean  @default(false)
+  priceId   String   @unique
+  agencyId  String?
+  Agency    Agency?  @relation(fields: [agencyId], references: [id])
+
+  @@index([agencyId])
+}

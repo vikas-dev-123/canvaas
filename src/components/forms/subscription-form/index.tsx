@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Plan } from "@prisma/client";
+import { Plan } from "@/lib/interfaces";
 import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import React, { useState } from "react";
 

@@ -2,7 +2,7 @@
 
 import useMounted from "@/hooks/useMounted";
 import { PricesList, TicketDetails } from "@/lib/types";
-import { Agency, Contact, Plan, User } from "@prisma/client";
+import { Agency, Contact, Plan, User } from "@/lib/interfaces";
 import { createContext, useContext, useState } from "react";
 
 interface ModalProviderProps {

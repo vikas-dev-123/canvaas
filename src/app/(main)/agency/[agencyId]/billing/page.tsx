@@ -1,6 +1,7 @@
 import { addOnProducts, pricingCards } from "@/lib/constants";
-import { db } from "@/lib/db";
+
 import { stripe } from "@/lib/stripe";
+import { AgencyService, SubscriptionService } from "@/services";
 import React from "react";
 import PricingCard from "./_components/pricing-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,26 +19,24 @@ const Page = async ({ params }: Props) => {
         expand: ["data.default_price"],
     });
 
-    const agencySubscription = await db.agency.findUnique({
-        where: {
-            id: params.agencyId,
-        },
-        select: {
-            customerId: true,
-            Subscription: true,
-        },
-    });
-
+    const agencyDetails = await AgencyService.findById(params.agencyId);
+    if (!agencyDetails) {
+        throw new Error('Agency not found');
+    }
+    
+    // Fetch subscription data using the subscription service
+    const subscription = await SubscriptionService.findByAgencyId(params.agencyId);
+    
     const prices = await stripe.prices.list({
         product: process.env.NEXT_CANVAAS_PRODUCT_ID,
         active: true,
     });
 
-    const currentPlanDetails = pricingCards.find((c) => c.priceId === agencySubscription?.Subscription?.priceId);
+    const currentPlanDetails = pricingCards.find((c) => c.priceId === subscription?.priceId);
 
     const charges = await stripe.charges.list({
         limit: 50,
-        customer: agencySubscription?.customerId,
+        customer: agencyDetails.customerId,
     });
 
     const allCharges = [
@@ -56,24 +55,24 @@ const Page = async ({ params }: Props) => {
             <h2 className="text-2xl p-4">Current Plan</h2>
             <div className="flex flex-col lg:!flex-row justify-between gap-8">
                 <PricingCard
-                    planExists={agencySubscription?.Subscription?.active === true}
+                    planExists={subscription?.active === true}
                     prices={prices.data}
-                    customerId={agencySubscription?.customerId || ""}
-                    amt={agencySubscription?.Subscription?.active === true ? currentPlanDetails?.price || "₹0" : "₹0"}
-                    buttonCta={agencySubscription?.Subscription?.active === true ? "Change Plan" : "Get  Started"}
+                    customerId={agencyDetails.customerId || ""}
+                    amt={subscription?.active === true ? currentPlanDetails?.price || "₹0" : "₹0"}
+                    buttonCta={subscription?.active === true ? "Change Plan" : "Get  Started"}
                     highlightDescription="Want to modify your plan? You can do this here. If you have
                     further question contact support@canvaas-app.com"
                     highlightTitle="Plan Options"
-                    description={agencySubscription?.Subscription?.active === true ? currentPlanDetails?.description || "Lets get started" : "Lets get started! Pick a plan that works best for you."}
+                    description={subscription?.active === true ? currentPlanDetails?.description || "Lets get started" : "Lets get started! Pick a plan that works best for you."}
                     duration="/ month"
-                    features={agencySubscription?.Subscription?.active === true ? currentPlanDetails?.features || [] : currentPlanDetails?.features || pricingCards.find((pricing) => pricing.title === "Starter")?.features || []}
-                    title={agencySubscription?.Subscription?.active === true ? currentPlanDetails?.title || "Starter" : "Starter"}
+                    features={subscription?.active === true ? currentPlanDetails?.features || [] : currentPlanDetails?.features || pricingCards.find((pricing) => pricing.title === "Starter")?.features || []}
+                    title={subscription?.active === true ? currentPlanDetails?.title || "Starter" : "Starter"}
                 />
                 {addOns.data.map((addOn) => (
                     <PricingCard
-                        planExists={agencySubscription?.Subscription?.active === true}
+                        planExists={subscription?.active === true}
                         prices={prices.data}
-                        customerId={agencySubscription?.customerId || ""}
+                        customerId={agencyDetails.customerId || ""}
                         key={addOn.id}
                         amt={
                             //@ts-ignore

@@ -3,7 +3,7 @@
 import { saveActivityLogsNotification, upsertPipeline } from "@/lib/queries";
 import { useModal } from "@/providers/modal-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pipeline } from "@prisma/client";
+import { Pipeline } from "@/lib/interfaces";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";

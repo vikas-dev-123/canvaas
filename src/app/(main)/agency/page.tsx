@@ -1,7 +1,7 @@
 import AgencyDetails from '@/components/forms/agency-details';
 import { getAuthUserDetails, verifyAndAcceptInvitation } from '@/lib/queries';
 import { currentUser } from '@clerk/nextjs/server'
-import { Plan } from '@prisma/client';
+import { Plan } from '@/lib/enums';
 import { redirect } from 'next/navigation';
 import React from 'react'
 
@@ -13,10 +13,15 @@ const Page = async ({searchParams}:{
   }
 }) => {
    
-  const agencyId = await verifyAndAcceptInvitation();
-  console.log("agencyId", agencyId);
   //get user details
   const user = await getAuthUserDetails();
+  
+  // Check for invitation first
+  const invitationAgencyId = await verifyAndAcceptInvitation();
+  
+  // If no invitation exists, use user's agencyId
+  const agencyId = invitationAgencyId || user?.agencyId;
+  console.log("agencyId", agencyId);
 
    if (agencyId) {
         if (user?.role === "SUBACCOUNT_GUEST" || user?.role === "SUBACCOUNT_USER") {

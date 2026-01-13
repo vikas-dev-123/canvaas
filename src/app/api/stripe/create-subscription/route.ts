@@ -1,7 +1,7 @@
-import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { AgencyService, SubscriptionService } from "@/services";
 
 export async function POST(req: Request) {
     const { customerId, priceId } = await req.json();
@@ -11,14 +11,14 @@ export async function POST(req: Request) {
         });
     }
 
-    const subscriptionExits = await db.agency.findFirst({
-        where: {
-            customerId,
-        },
-        include: {
-            Subscription: true,
-        },
-    });
+    const agency = await AgencyService.findByCustomerId(customerId);
+    let subscriptionExits = null;
+    
+    if (agency) {
+      // Get the subscription for this agency
+      const subscription = await SubscriptionService.findByAgencyId(agency.id);
+      subscriptionExits = { ...agency, Subscription: subscription || null };
+    }
 
     try {
         if (subscriptionExits?.Subscription?.subscritiptionId && subscriptionExits?.Subscription?.active) {

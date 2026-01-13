@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { upsertFunnelPage } from "@/lib/queries";
 import { FunnelsForSubAccount } from "@/lib/types";
-import { FunnelPage } from "@prisma/client";
+import { FunnelPage } from "@/lib/interfaces";
 import { Check, ExternalLink, LucideEdit } from "lucide-react";
 import React, { useState } from "react";
 

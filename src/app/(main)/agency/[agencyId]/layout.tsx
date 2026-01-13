@@ -14,13 +14,17 @@ type Props = {
 } & ChildrenProps;
 
 const Layout = async ({ children, params }: Props) => {
-    const agencyId = await verifyAndAcceptInvitation();
     const user = await currentUser();
 
     if (!user) {
         return redirect("/");
     }
 
+    const invitationAgencyId = await verifyAndAcceptInvitation();
+    
+    // Use the agencyId from URL params, but also check for invitation
+    const agencyId = invitationAgencyId || params.agencyId;
+    
     if (!agencyId) {
         return redirect(`/agency`);
     }

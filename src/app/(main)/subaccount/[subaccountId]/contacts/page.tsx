@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getContact } from "@/lib/queries";
-import { Contact, SubAccount, Ticket } from "@prisma/client";
+import { Contact, SubAccount, Ticket } from "@/lib/interfaces";
 import { format } from "date-fns";
 import React from "react";
 import CreateContactButton from "./_components/create-contact-btn";

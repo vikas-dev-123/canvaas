@@ -1,20 +1,13 @@
 "use server";
 
 import Stripe from "stripe";
-import { db } from "../db";
 import { stripe } from ".";
-import { Plan } from "@prisma/client";
+import { Plan } from "@/lib/interfaces";
+import { AgencyService, SubscriptionService } from "@/services";
 
 export const subscriptionCreated = async (subscription: Stripe.Subscription, customerId: string) => {
     try {
-        const agency = await db.agency.findFirst({
-            where: {
-                customerId,
-            },
-            include: {
-                Subscription: true,
-            },
-        });
+        const agency = await AgencyService.findByCustomerId(customerId);
 
         if (!agency) {
             throw new Error("Could not find and agency to upsert the subscription");
@@ -34,13 +27,13 @@ export const subscriptionCreated = async (subscription: Stripe.Subscription, cus
 
         console.log({ ...subscription });
 
-        const res = await db.subscription.upsert({
-            where: {
-                agencyId: agency.id,
-            },
-            create: data,
-            update: data,
-        });
+        const existingSubscription = await SubscriptionService.findByAgencyId(agency.id);
+        
+        if (existingSubscription) {
+          await SubscriptionService.update(existingSubscription.id, data);
+        } else {
+          await SubscriptionService.create(data);
+        }
 
         console.log(`🟢 Created Subscription for ${subscription.id}`);
     } catch (error) {

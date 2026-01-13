@@ -2,7 +2,7 @@
 import { CreateFunnelFormSchema } from "@/lib/types";
 import { useModal } from "@/providers/modal-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Funnel } from "@prisma/client";
+import { Funnel } from "@/lib/interfaces";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";

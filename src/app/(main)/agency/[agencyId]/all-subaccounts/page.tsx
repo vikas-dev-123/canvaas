@@ -3,7 +3,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getAuthUserDetails } from "@/lib/queries";
-import { SubAccount } from "@prisma/client";
+import { SubAccount } from "@/lib/interfaces";
 import Image from "next/image";
 import Link from "next/link";
 import DeleteButton from "./_components/delete-button";
