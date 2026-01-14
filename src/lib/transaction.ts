@@ -1,32 +1,19 @@
-import { pool } from './mysql-db';
+import mongoose from "mongoose";
 
-/**
- * Execute a transaction with automatic rollback on error
- */
-export const withTransaction = async <T>(
-  callback: (connection: any) => Promise<T>
-): Promise<T> => {
-  const connection = await pool.getConnection();
-  
+export async function runTransaction<T>(
+  fn: (session: mongoose.ClientSession) => Promise<T>
+) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    await connection.beginTransaction();
-    const result = await callback(connection);
-    await connection.commit();
+    const result = await fn(session);
+    await session.commitTransaction();
     return result;
   } catch (error) {
-    await connection.rollback();
+    await session.abortTransaction();
     throw error;
   } finally {
-    connection.release();
+    session.endSession();
   }
-};
-
-/**
- * Execute a query within a transaction
- * This is a helper to ensure all operations happen within a transaction
- */
-export const executeInTransaction = async <T>(
-  query: (connection: any) => Promise<T>
-): Promise<T> => {
-  return withTransaction(query);
-};
+}

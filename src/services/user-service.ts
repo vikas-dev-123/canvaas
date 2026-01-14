@@ -8,9 +8,14 @@ export class UserService {
     try {
       const user = await User.findById(id).lean();
       if (user) {
-        // Transform _id to id for frontend compatibility
-        (user as any).id = (user as any)._id;
+        // Transform _id to id for frontend compatibility and return a clean plain object
+        const cleanUser = { ...user };
+        cleanUser.id = cleanUser.id || (cleanUser as any)._id;
+        // Remove Mongoose-specific properties
+        delete (cleanUser as any).__v;
+        return cleanUser as IUser;
       }
+      // Return clean object if no user found
       return user as IUser;
     } catch (error) {
       console.error('Error finding user by ID:', error);
@@ -23,9 +28,14 @@ export class UserService {
     try {
       const user = await User.findOne({ email }).lean();
       if (user) {
-        // Transform _id to id for frontend compatibility
-        (user as any).id = (user as any)._id;
+        // Transform _id to id for frontend compatibility and return a clean plain object
+        const cleanUser = { ...user };
+        cleanUser.id = cleanUser.id || (cleanUser as any)._id;
+        // Remove Mongoose-specific properties
+        delete (cleanUser as any).__v;
+        return cleanUser as IUser;
       }
+      // Return clean object if no user found
       return user as IUser;
     } catch (error) {
       console.error('Error finding user by email:', error);
@@ -38,10 +48,14 @@ export class UserService {
     try {
       const user = new User(userData);
       const savedUser = await user.save();
-      // Transform _id to id for frontend compatibility
+      // Transform _id to id for frontend compatibility and return a clean plain object
       const result = savedUser.toObject();
-      (result as any).id = (result as any)._id;
-      return result as IUser;
+      const cleanResult = { ...result };
+      cleanResult.id = cleanResult.id || (cleanResult as any)._id;
+      // Remove Mongoose-specific properties
+      delete (cleanResult as any).__v;
+      delete (cleanResult as any)._id;
+      return cleanResult as IUser;
     } catch (error) {
       console.error('Error creating user:', error);
       throw error;
@@ -57,9 +71,14 @@ export class UserService {
         { new: true }
       ).lean();
       if (updatedUser) {
-        // Transform _id to id for frontend compatibility
-        (updatedUser as any).id = (updatedUser as any)._id;
+        // Transform _id to id for frontend compatibility and return a clean plain object
+        const cleanUpdatedUser = { ...updatedUser };
+        cleanUpdatedUser.id = cleanUpdatedUser.id || (cleanUpdatedUser as any)._id;
+        // Remove Mongoose-specific properties
+        delete (cleanUpdatedUser as any).__v;
+        return cleanUpdatedUser as IUser;
       }
+      // Return clean object if no user found
       return updatedUser as IUser;
     } catch (error) {
       console.error('Error updating user:', error);
@@ -82,10 +101,14 @@ export class UserService {
     await connectToDatabase();
     try {
       const users = await User.find({ agencyId }).lean();
-      // Transform _id to id for all users for frontend compatibility
+      // Transform _id to id for all users for frontend compatibility and return clean plain objects
       const result = users.map(user => {
-        (user as any).id = (user as any)._id;
-        return user as IUser;
+        const cleanUser = { ...user };
+        cleanUser.id = cleanUser.id || (cleanUser as any)._id;
+        // Remove Mongoose-specific properties
+        delete (cleanUser as any).__v;
+        delete (cleanUser as any)._id;
+        return cleanUser as IUser;
       });
       return result;
     } catch (error) {

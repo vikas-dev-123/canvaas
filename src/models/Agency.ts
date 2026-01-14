@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IAgency extends Document {
-  id?: string; // Added for frontend compatibility
+  id: string; // UUID v4 - primary application ID
   connectAccountId?: string;
   customerId: string;
   name: string;
@@ -21,6 +21,7 @@ export interface IAgency extends Document {
 }
 
 const AgencySchema: Schema<IAgency> = new Schema({
+  id: { type: String, required: false }, // Custom id field to store UUID
   connectAccountId: { type: String, default: "" },
   customerId: { type: String, default: "" },
   name: { type: String, required: true },
@@ -38,5 +39,8 @@ const AgencySchema: Schema<IAgency> = new Schema({
 }, {
   timestamps: true
 });
+
+// Ensure the id field is unique if present
+AgencySchema.index({ id: 1 }, { unique: true, sparse: true });
 
 export const Agency = mongoose.models.Agency || mongoose.model<IAgency>('Agency', AgencySchema);

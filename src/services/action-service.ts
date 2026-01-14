@@ -13,7 +13,7 @@ export class ActionService {
     }
   }
 
-  static async create(actionData: Omit<IAction, '_id'>): Promise<IAction> {
+  static async create(actionData: Omit<IAction, 'id'>): Promise<IAction> {
     await connectToDatabase();
     try {
       const action = new Action(actionData);

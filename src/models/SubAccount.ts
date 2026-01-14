@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISubAccount extends Document {
-  id?: string; // Added for frontend compatibility
+  id: string; // UUID v4 - primary application ID
   connectAccountId?: string;
   name: string;
   subAccountLogo?: string;
@@ -19,6 +19,7 @@ export interface ISubAccount extends Document {
 }
 
 const SubAccountSchema: Schema<ISubAccount> = new Schema({
+  id: { type: String, required: true },
   connectAccountId: { type: String, default: "" },
   name: { type: String, required: true },
   subAccountLogo: { type: String },

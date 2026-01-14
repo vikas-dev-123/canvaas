@@ -43,9 +43,19 @@ export type UserWithPermissionsAndSubAccounts = Awaited<ReturnType<typeof getUse
 export type AuthUSerWithAgencySigebarOptionsSubAccounts = Awaited<ReturnType<typeof getAuthUserDetails>>;
 
 // Extended Agency interface that includes the properties added dynamically by getAuthUserDetails
-export interface IExtendedAgency extends import("../models/Agency").IAgency {
-  SubAccount?: import("../models/SubAccount").ISubAccount[];
-  SidebarOption?: import("../models/AgencySidebarOption").IAgencySidebarOption[];
+import { IAgency } from "../models/Agency";
+import { ISubAccount } from "../models/SubAccount";
+import { IAgencySidebarOption } from "../models/AgencySidebarOption";
+import { ISubAccountSidebarOption } from "../models/SubAccountSidebarOption";
+
+// Extended SubAccount interface that includes the properties added dynamically by getAuthUserDetails
+export interface IExtendedSubAccount extends ISubAccount {
+  SidebarOption?: ISubAccountSidebarOption[];
+}
+
+export interface IExtendedAgency extends IAgency {
+  SubAccount?: IExtendedSubAccount[];
+  SidebarOption?: IAgencySidebarOption[];
 }
 
 export interface UsersWithAgencySubAccountPermissionsSidebarOptions extends IUser {

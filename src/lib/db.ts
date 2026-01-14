@@ -1,44 +1,44 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/saas';
+const MONGODB_URI = process.env.MONGODB_URI!;
 
-interface MongooseGlobal {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
+if (!MONGODB_URI) {
+  throw new Error("Missing MONGODB_URI");
 }
 
-// Extend the NodeJS global type to include mongoose connection
 declare global {
-  var mongoose: MongooseGlobal;
+  const mongooseConn:
+    | {
+        conn: typeof mongoose | null;
+        promise: Promise<typeof mongoose> | null;
+      }
+    | undefined;
 }
 
-let cached = global.mongoose;
+const globalWithMongoose = global as typeof global & {
+  mongooseConn?: {
+    conn: typeof mongoose | null;
+    promise: Promise<typeof mongoose> | null;
+  };
+};
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+if (!globalWithMongoose.mongooseConn) {
+  globalWithMongoose.mongooseConn = { conn: null, promise: null };
 }
 
-export async function connectToDatabase() {
-  if (cached.conn) {
-    return cached.conn;
+export async function connectDB() {
+  if (globalWithMongoose.mongooseConn!.conn) {
+    return globalWithMongoose.mongooseConn!.conn;
   }
-  
-  if (!cached.promise) {
-    const opts = {
+
+  if (!globalWithMongoose.mongooseConn!.promise) {
+    globalWithMongoose.mongooseConn!.promise = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
-    };
-    
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
     });
   }
-  
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
 
-  return cached.conn;
+  globalWithMongoose.mongooseConn!.conn =
+    await globalWithMongoose.mongooseConn!.promise;
+
+  return globalWithMongoose.mongooseConn!.conn;
 }

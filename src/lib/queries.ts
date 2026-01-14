@@ -88,15 +88,15 @@ export const getAuthUserDetails = async () => {
   if (userData.agencyId) {
     const agency = await AgencyService.findById(userData.agencyId);
     if (agency) {
-      const sidebarOptions = await AgencySidebarOptionService.findByAgencyId(agency._id.toString());
-      const subAccounts = await SubAccountService.findByAgencyId(agency._id.toString());
+      const sidebarOptions = await AgencySidebarOptionService.findByAgencyId(agency.id);
+      const subAccounts = await SubAccountService.findByAgencyId(agency.id);
       
       // Add sidebar options to agency
       (agency as any).SidebarOption = sidebarOptions;
       
       // Add subaccounts with their sidebar options
       for (const subAccount of subAccounts) {
-        const subAccountSidebarOptions = await SubAccountSidebarOptionService.findBySubAccountId(subAccount._id.toString());
+        const subAccountSidebarOptions = await SubAccountSidebarOptionService.findBySubAccountId(subAccount.id);
         (subAccount as any).SidebarOption = subAccountSidebarOptions;
       }
       
@@ -299,7 +299,7 @@ export const updateAgencyDetails = async (agencyId: string, agencyDetails: Parti
 export const getAgencyDetails = async (agencyId: string) => {
   const response = await AgencyService.findById(agencyId);
   if (response) {
-    const subAccounts = await SubAccountService.findByAgencyId(agencyId);
+    const subAccounts = await SubAccountService.findByAgencyId(response.id);
     (response as any).SubAccount = subAccounts;
   }
   return response;
@@ -359,12 +359,12 @@ export const upsertAgency = async (agency: any, price?: any) => {
   if (!agency.companyEmail) return null;
 
   try {
-    // Try to find existing agency
-    let agencyDetails = await AgencyService.findById(agency._id);
+    // Try to find existing agency using the provided id field
+    let agencyDetails = await AgencyService.findById(agency.id);
     
     if (agencyDetails) {
       // Update existing agency
-      agencyDetails = await AgencyService.update(agency._id, { ...agency });
+      agencyDetails = await AgencyService.update(agency.id, { ...agency });
     } else {
       // Create new agency
       const user = await UserService.findByEmail(agency.companyEmail);
