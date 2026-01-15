@@ -60,10 +60,11 @@ export class TicketService {
     try {
       const ticket = new Ticket(ticketData);
       const savedTicket = await ticket.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedTicket.toObject();
-      (result as any).id = (result as any)._id;
-      return result as ITicket;
+      // Clean up the ticket object for Next.js compatibility
+      const ticketObj = savedTicket.toObject();
+      const { _id, __v, ...cleanResult } = ticketObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as ITicket;
     } catch (error) {
       console.error('Error creating ticket:', error);
       throw error;
