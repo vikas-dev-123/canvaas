@@ -79,11 +79,14 @@ export class TicketService {
         { ...ticketData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedTicket) {
-        // Transform _id to id for frontend compatibility
-        (updatedTicket as any).id = (updatedTicket as any)._id;
+        // Clean up the ticket object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedTicket } = updatedTicket;
+        cleanUpdatedTicket.id = cleanUpdatedTicket.id ?? _id?.toString();
+        return cleanUpdatedTicket as ITicket;
       }
-      return updatedTicket as ITicket;
+      return null;
     } catch (error) {
       console.error('Error updating ticket:', error);
       throw error;
@@ -115,10 +118,11 @@ export class TicketService {
       // Find the actual tags
       const tags = await Tag.find({ _id: { $in: tagIds } }).lean();
       
-      // Transform _id to id for all tags for frontend compatibility
+      // Clean up the tag objects for Next.js compatibility
       const result = tags.map(tag => {
-        (tag as any).id = (tag as any)._id;
-        return tag as ITag;
+        const { _id, __v, ...cleanTag } = tag;
+        cleanTag.id = cleanTag.id ?? _id?.toString();
+        return cleanTag as ITag;
       });
       
       return result;
