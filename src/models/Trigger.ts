@@ -1,8 +1,14 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import { TriggerTypes } from '../lib/enums';
+import mongoose, { Schema, Model } from "mongoose";
+import { TriggerTypes } from "../lib/enums";
 
-export interface ITrigger extends Document {
-  id?: string; // Added for frontend compatibility
+/**
+ * Plain interface (NO Document)
+ * Next.js serialization safe
+ */
+export interface ITrigger {
+  id: string;
+  _id?: string;
+  __v?: number;
   name: string;
   type: TriggerTypes;
   subAccountId: string;
@@ -10,12 +16,57 @@ export interface ITrigger extends Document {
   updatedAt: Date;
 }
 
-const TriggerSchema: Schema<ITrigger> = new Schema({
-  name: { type: String, required: true },
-  type: { type: String, enum: TriggerTypes, required: true },
-  subAccountId: { type: String, ref: 'SubAccount', required: true, index: true },
-}, {
-  timestamps: true
-});
+const TriggerSchema = new Schema<ITrigger>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: Object.values(TriggerTypes),
+      required: true,
+      index: true,
+    },
+    subAccountId: {
+      type: String,
+      ref: "SubAccount",
+      required: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
 
-export const Trigger = mongoose.models.Trigger || mongoose.model<ITrigger>('Trigger', TriggerSchema);
+    /**
+     * Fix Next.js Server → Client serialization
+     */
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
+
+/**
+ * Optimized lookup indexes
+ */
+TriggerSchema.index({ subAccountId: 1, type: 1 });
+
+export const Trigger: Model<ITrigger> =
+  mongoose.models.Trigger ||
+  mongoose.model<ITrigger>("Trigger", TriggerSchema);

@@ -179,13 +179,13 @@ export const saveActivityLogsNotification = async ({
       notification: `${userData.name} | ${description}`,
       agencyId: foundAgencyId as string,
       subAccountId: subAccountId,
-      userId: userData._id.toString()
+      userId: userData.id
     } as any);
   } else {
     await NotificationService.create({
       notification: `${userData.name} | ${description}`,
       agencyId: foundAgencyId as string,
-      userId: userData._id.toString()
+      userId: userData.id
     } as any);
   }
 };
@@ -198,7 +198,7 @@ export const updateUser = async (user: Partial<any>) => {
   }
   
   // Update the user with the provided data
-  const response = await UserService.update(existingUser._id.toString(), user);
+  const response = await UserService.update(existingUser.id, user);
   
   if (!response) {
     throw new Error("Failed to update user");
@@ -206,7 +206,7 @@ export const updateUser = async (user: Partial<any>) => {
   
   try {
     const clerk = await clerkClient();
-    await clerk.users.updateUserMetadata(response._id.toString(), {
+    await clerk.users.updateUserMetadata(response.id, {
       publicMetadata: {
         role: user.role || "SUBACCOUNT_USER",
       },
@@ -329,7 +329,7 @@ export const initUser = async (newUser: Partial<any>) => {
   } else {
     // Update existing user
     userData = await UserService.update(
-      userData._id.toString(),
+      userData.id,
       { 
         avatarUrl: user.imageUrl,
         name: `${user.firstName} ${user.lastName}`,
@@ -448,7 +448,7 @@ export const upsertSubAccount = async (subAccount: UpsertSubAccountInput) => {
     // Create default permissions for agency owner
     await PermissionsService.create({
       email: agencyOwner.email,
-      subAccountId: response._id.toString(),
+      subAccountId: response.id,
       access: true
     } as any);
   }
@@ -555,10 +555,10 @@ export const getLanesWithTicketAndTags = async (pipelineId: string) => {
   const lanes = await LaneService.findByPipelineId(pipelineId);
   
   for (const lane of lanes) {
-    const tickets = await TicketService.findByLaneId(lane._id.toString());
+    const tickets = await TicketService.findByLaneId(lane.id);
     
     for (const ticket of tickets) {
-      const tags = await TicketService.findTagsByTicketId(ticket._id.toString());
+      const tags = await TicketService.findTagsByTicketId(ticket.id);
       (ticket as any).Tags = tags;
       
       if (ticket.assignedUserId) {
@@ -603,7 +603,7 @@ export const getTicketsWithTags = async (pipelineId: string) => {
   let allTickets: any[] = [];
   
   for (const lane of lanes) {
-    const laneTickets = await TicketService.findByLaneId(lane._id.toString());
+    const laneTickets = await TicketService.findByLaneId(lane.id);
     allTickets = [...allTickets, ...laneTickets];
   }
   
@@ -733,7 +733,7 @@ export const _getTicketsWithAllRelations = async (laneId: string) => {
     const lane = await LaneService.findById(ticket.laneId);
     (ticket as any).Lane = lane;
     
-    const tags = await TicketService.findTagsByTicketId(ticket._id.toString());
+    const tags = await TicketService.findTagsByTicketId(ticket.id);
     (ticket as any).Tags = tags;
   }
 
@@ -798,7 +798,7 @@ export const upsertTicket = async (ticket: any, tags: any[]) => {
     // Extract tag IDs from the tags array
     const tagIds = tags.map(tag => tag.id).filter(id => id); // Filter out any undefined/null IDs
     // Update ticket tags
-    await TicketService.updateTicketTags(response._id.toString(), tagIds);
+    await TicketService.updateTicketTags(response.id, tagIds);
   }
 
   // Include related data in response
@@ -816,7 +816,7 @@ export const upsertTicket = async (ticket: any, tags: any[]) => {
     const lane = await LaneService.findById(response.laneId);
     (response as any).Lane = lane;
     
-    const ticketTags = await TicketService.findTagsByTicketId(response._id.toString());
+    const ticketTags = await TicketService.findTagsByTicketId(response.id);
     (response as any).Tags = ticketTags;
   }
 
@@ -865,7 +865,7 @@ export const getContact = async (subaccountId: string) => {
     
     // Add ticket values to each contact
     for (const contact of contacts) {
-      const tickets = await TicketService.findByCustomerId(contact._id.toString());
+      const tickets = await TicketService.findByCustomerId(contact.id);
       (contact as any).Ticket = tickets; // Only getting tickets for this contact
     }
     
@@ -918,7 +918,7 @@ export const getFunnels = async (subaccountId: string) => {
   
   // Add funnel pages to each funnel
   for (const funnel of funnels) {
-    const funnelPages = await FunnelPageService.findByFunnelId(funnel._id.toString());
+    const funnelPages = await FunnelPageService.findByFunnelId(funnel.id);
     (funnel as any).FunnelPages = funnelPages;
   }
 
@@ -929,7 +929,7 @@ export const getFunnel = async (funnelId: string) => {
   const funnel = await FunnelService.findById(funnelId);
   
   if (funnel) {
-    const funnelPages = await FunnelPageService.findByFunnelId(funnel._id.toString());
+    const funnelPages = await FunnelPageService.findByFunnelId(funnel.id);
     // Sort pages by order
     funnelPages.sort((a, b) => (a.order || 0) - (b.order || 0));
     (funnel as any).FunnelPages = funnelPages;

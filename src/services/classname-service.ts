@@ -6,7 +6,13 @@ export class ClassNameService {
     await connectToDatabase();
     try {
       const className = await ClassName.findById(id).lean();
-      return className as IClassName;
+      if (className) {
+        // Clean up the className object for Next.js compatibility
+        const { _id, __v, ...cleanClassName } = className;
+        cleanClassName.id = cleanClassName.id ?? _id?.toString();
+        return cleanClassName as IClassName;
+      }
+      return null;
     } catch (error) {
       console.error('Error finding class name by ID:', error);
       return null;
@@ -18,7 +24,11 @@ export class ClassNameService {
     try {
       const className = new ClassName(classNameData);
       const savedClassName = await className.save();
-      return savedClassName as IClassName;
+      // Clean up the className object for Next.js compatibility
+      const classNameObj = savedClassName.toObject();
+      const { _id, __v, ...cleanResult } = classNameObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as IClassName;
     } catch (error) {
       console.error('Error creating class name:', error);
       throw error;
@@ -33,7 +43,14 @@ export class ClassNameService {
         { ...classNameData, updatedAt: new Date() },
         { new: true }
       ).lean();
-      return updatedClassName as IClassName;
+      
+      if (updatedClassName) {
+        // Clean up the className object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedClassName } = updatedClassName;
+        cleanUpdatedClassName.id = cleanUpdatedClassName.id ?? _id?.toString();
+        return cleanUpdatedClassName as IClassName;
+      }
+      return null;
     } catch (error) {
       console.error('Error updating class name:', error);
       throw error;

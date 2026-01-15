@@ -1,22 +1,19 @@
-import { connectToDatabase } from '../lib/db';
+import { connectDB } from '../lib/db';
 import { User, IUser } from '../models/User';
 import { Role } from '../lib/enums';
 
 export class UserService {
   static async findById(id: string): Promise<IUser | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const user = await User.findById(id).lean();
       if (user) {
-        // Transform _id to id for frontend compatibility and return a clean plain object
-        const cleanUser = { ...user };
-        cleanUser.id = cleanUser.id || (cleanUser as any)._id;
-        // Remove Mongoose-specific properties
-        delete (cleanUser as any).__v;
+        // Clean up the user object for Next.js compatibility
+        const { _id, __v, ...cleanUser } = user;
+        cleanUser.id = cleanUser.id ?? _id?.toString();
         return cleanUser as IUser;
       }
-      // Return clean object if no user found
-      return user as IUser;
+      return null;
     } catch (error) {
       console.error('Error finding user by ID:', error);
       return null;
@@ -24,19 +21,16 @@ export class UserService {
   }
 
   static async findByEmail(email: string): Promise<IUser | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const user = await User.findOne({ email }).lean();
       if (user) {
-        // Transform _id to id for frontend compatibility and return a clean plain object
-        const cleanUser = { ...user };
-        cleanUser.id = cleanUser.id || (cleanUser as any)._id;
-        // Remove Mongoose-specific properties
-        delete (cleanUser as any).__v;
+        // Clean up the user object for Next.js compatibility
+        const { _id, __v, ...cleanUser } = user;
+        cleanUser.id = cleanUser.id ?? _id?.toString();
         return cleanUser as IUser;
       }
-      // Return clean object if no user found
-      return user as IUser;
+      return null;
     } catch (error) {
       console.error('Error finding user by email:', error);
       return null;
@@ -44,17 +38,14 @@ export class UserService {
   }
 
   static async create(userData: Omit<IUser, '_id' | 'createdAt' | 'updatedAt'>): Promise<IUser> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const user = new User(userData);
       const savedUser = await user.save();
-      // Transform _id to id for frontend compatibility and return a clean plain object
-      const result = savedUser.toObject();
-      const cleanResult = { ...result };
-      cleanResult.id = cleanResult.id || (cleanResult as any)._id;
-      // Remove Mongoose-specific properties
-      delete (cleanResult as any).__v;
-      delete (cleanResult as any)._id;
+      // Clean up the user object for Next.js compatibility
+      const userObj = savedUser.toObject();
+      const { _id, __v, ...cleanResult } = userObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
       return cleanResult as IUser;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -63,23 +54,21 @@ export class UserService {
   }
 
   static async update(id: string, userData: Partial<Omit<IUser, '_id' | 'createdAt' | 'updatedAt'>>): Promise<IUser | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const updatedUser = await User.findByIdAndUpdate(
         id,
         { ...userData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedUser) {
-        // Transform _id to id for frontend compatibility and return a clean plain object
-        const cleanUpdatedUser = { ...updatedUser };
-        cleanUpdatedUser.id = cleanUpdatedUser.id || (cleanUpdatedUser as any)._id;
-        // Remove Mongoose-specific properties
-        delete (cleanUpdatedUser as any).__v;
+        // Clean up the user object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedUser } = updatedUser;
+        cleanUpdatedUser.id = cleanUpdatedUser.id ?? _id?.toString();
         return cleanUpdatedUser as IUser;
       }
-      // Return clean object if no user found
-      return updatedUser as IUser;
+      return null;
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;
@@ -87,7 +76,7 @@ export class UserService {
   }
 
   static async delete(id: string): Promise<boolean> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const result = await User.findByIdAndDelete(id);
       return !!result;
@@ -98,16 +87,13 @@ export class UserService {
   }
 
   static async findByAgencyId(agencyId: string): Promise<IUser[]> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const users = await User.find({ agencyId }).lean();
-      // Transform _id to id for all users for frontend compatibility and return clean plain objects
+      // Clean up the user objects for Next.js compatibility
       const result = users.map(user => {
-        const cleanUser = { ...user };
-        cleanUser.id = cleanUser.id || (cleanUser as any)._id;
-        // Remove Mongoose-specific properties
-        delete (cleanUser as any).__v;
-        delete (cleanUser as any)._id;
+        const { _id, __v, ...cleanUser } = user;
+        cleanUser.id = cleanUser.id ?? _id?.toString();
         return cleanUser as IUser;
       });
       return result;

@@ -7,10 +7,12 @@ export class FunnelPageService {
     try {
       const funnelPage = await FunnelPage.findById(id).lean();
       if (funnelPage) {
-        // Transform _id to id for frontend compatibility
-        (funnelPage as any).id = (funnelPage as any)._id;
+        // Clean up the funnelPage object for Next.js compatibility
+        const { _id, __v, ...cleanFunnelPage } = funnelPage;
+        cleanFunnelPage.id = cleanFunnelPage.id ?? _id?.toString();
+        return cleanFunnelPage as IFunnelPage;
       }
-      return funnelPage as IFunnelPage;
+      return null;
     } catch (error) {
       console.error('Error finding funnel page by ID:', error);
       return null;
@@ -21,10 +23,11 @@ export class FunnelPageService {
     await connectToDatabase();
     try {
       const funnelPages = await FunnelPage.find({ funnelId }).sort({ order: 1 }).lean();
-      // Transform _id to id for all funnel pages for frontend compatibility
-      const result = funnelPages.map(fp => {
-        (fp as any).id = (fp as any)._id;
-        return fp as IFunnelPage;
+      // Clean up the funnelPage objects for Next.js compatibility
+      const result = funnelPages.map(funnelPage => {
+        const { _id, __v, ...cleanFunnelPage } = funnelPage;
+        cleanFunnelPage.id = cleanFunnelPage.id ?? _id?.toString();
+        return cleanFunnelPage as IFunnelPage;
       });
       return result;
     } catch (error) {
@@ -38,10 +41,11 @@ export class FunnelPageService {
     try {
       const funnelPage = new FunnelPage(funnelPageData);
       const savedFunnelPage = await funnelPage.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedFunnelPage.toObject();
-      (result as any).id = (result as any)._id;
-      return result as IFunnelPage;
+      // Clean up the funnelPage object for Next.js compatibility
+      const funnelPageObj = savedFunnelPage.toObject();
+      const { _id, __v, ...cleanResult } = funnelPageObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as IFunnelPage;
     } catch (error) {
       console.error('Error creating funnel page:', error);
       throw error;
@@ -56,11 +60,14 @@ export class FunnelPageService {
         { ...funnelPageData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedFunnelPage) {
-        // Transform _id to id for frontend compatibility
-        (updatedFunnelPage as any).id = (updatedFunnelPage as any)._id;
+        // Clean up the funnelPage object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedFunnelPage } = updatedFunnelPage;
+        cleanUpdatedFunnelPage.id = cleanUpdatedFunnelPage.id ?? _id?.toString();
+        return cleanUpdatedFunnelPage as IFunnelPage;
       }
-      return updatedFunnelPage as IFunnelPage;
+      return null;
     } catch (error) {
       console.error('Error updating funnel page:', error);
       throw error;

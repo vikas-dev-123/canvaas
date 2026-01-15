@@ -7,10 +7,12 @@ export class SubscriptionService {
     try {
       const subscription = await Subscription.findById(id).lean();
       if (subscription) {
-        // Transform _id to id for frontend compatibility
-        (subscription as any).id = (subscription as any)._id;
+        // Clean up the subscription object for Next.js compatibility
+        const { _id, __v, ...cleanSubscription } = subscription;
+        cleanSubscription.id = cleanSubscription.id ?? _id?.toString();
+        return cleanSubscription as ISubscription;
       }
-      return subscription as ISubscription;
+      return null;
     } catch (error) {
       console.error('Error finding subscription by ID:', error);
       return null;
@@ -22,10 +24,11 @@ export class SubscriptionService {
     try {
       const subscription = new Subscription(subscriptionData);
       const savedSubscription = await subscription.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedSubscription.toObject();
-      (result as any).id = (result as any)._id;
-      return result as ISubscription;
+      // Clean up the subscription object for Next.js compatibility
+      const subscriptionObj = savedSubscription.toObject();
+      const { _id, __v, ...cleanResult } = subscriptionObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as ISubscription;
     } catch (error) {
       console.error('Error creating subscription:', error);
       throw error;
@@ -40,11 +43,14 @@ export class SubscriptionService {
         { ...subscriptionData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedSubscription) {
-        // Transform _id to id for frontend compatibility
-        (updatedSubscription as any).id = (updatedSubscription as any)._id;
+        // Clean up the subscription object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedSubscription } = updatedSubscription;
+        cleanUpdatedSubscription.id = cleanUpdatedSubscription.id ?? _id?.toString();
+        return cleanUpdatedSubscription as ISubscription;
       }
-      return updatedSubscription as ISubscription;
+      return null;
     } catch (error) {
       console.error('Error updating subscription:', error);
       throw error;

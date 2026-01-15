@@ -1,7 +1,9 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
-export interface IFunnelPage extends Document {
-  id?: string; // Added for frontend compatibility
+export interface IFunnelPage {
+  id: string;
+  _id?: string;
+  __v?: number;
   name: string;
   pathName: string;
   funnelId: string;
@@ -13,16 +15,63 @@ export interface IFunnelPage extends Document {
   updatedAt: Date;
 }
 
-const FunnelPageSchema: Schema<IFunnelPage> = new Schema({
-  name: { type: String, required: true },
-  pathName: { type: String, default: "" },
-  funnelId: { type: String, ref: 'Funnel', required: true, index: true },
-  visits: { type: Number, default: 0 },
-  content: { type: String },
-  order: { type: Number, required: true },
-  previewImage: { type: String },
-}, {
-  timestamps: true
-});
+const FunnelPageSchema = new Schema<IFunnelPage>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    pathName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    funnelId: {
+      type: String,
+      ref: "Funnel",
+      required: true,
+      index: true,
+    },
+    visits: {
+      type: Number,
+      default: 0,
+    },
+    content: {
+      type: String,
+    },
+    order: {
+      type: Number,
+      required: true,
+    },
+    previewImage: {
+      type: String,
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
 
-export const FunnelPage = mongoose.models.FunnelPage || mongoose.model<IFunnelPage>('FunnelPage', FunnelPageSchema);
+// 🔥 Important: ordering optimization
+FunnelPageSchema.index({ funnelId: 1, order: 1 });
+
+export const FunnelPage: Model<IFunnelPage> =
+  mongoose.models.FunnelPage ||
+  mongoose.model<IFunnelPage>("FunnelPage", FunnelPageSchema);

@@ -6,7 +6,13 @@ export class AutomationService {
     await connectToDatabase();
     try {
       const automation = await Automation.findById(id).lean();
-      return automation as IAutomation;
+      if (automation) {
+        // Clean up the automation object for Next.js compatibility
+        const { _id, __v, ...cleanAutomation } = automation;
+        cleanAutomation.id = cleanAutomation.id ?? _id?.toString();
+        return cleanAutomation as IAutomation;
+      }
+      return null;
     } catch (error) {
       console.error('Error finding automation by ID:', error);
       return null;
@@ -18,7 +24,11 @@ export class AutomationService {
     try {
       const automation = new Automation(automationData);
       const savedAutomation = await automation.save();
-      return savedAutomation as IAutomation;
+      // Clean up the automation object for Next.js compatibility
+      const automationObj = savedAutomation.toObject();
+      const { _id, __v, ...cleanResult } = automationObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as IAutomation;
     } catch (error) {
       console.error('Error creating automation:', error);
       throw error;
@@ -33,7 +43,14 @@ export class AutomationService {
         { ...automationData, updatedAt: new Date() },
         { new: true }
       ).lean();
-      return updatedAutomation as IAutomation;
+      
+      if (updatedAutomation) {
+        // Clean up the automation object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedAutomation } = updatedAutomation;
+        cleanUpdatedAutomation.id = cleanUpdatedAutomation.id ?? _id?.toString();
+        return cleanUpdatedAutomation as IAutomation;
+      }
+      return null;
     } catch (error) {
       console.error('Error updating automation:', error);
       throw error;

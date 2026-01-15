@@ -7,10 +7,12 @@ export class FunnelService {
     try {
       const funnel = await Funnel.findById(id).lean();
       if (funnel) {
-        // Transform _id to id for frontend compatibility
-        (funnel as any).id = (funnel as any)._id;
+        // Clean up the funnel object for Next.js compatibility
+        const { _id, __v, ...cleanFunnel } = funnel;
+        cleanFunnel.id = cleanFunnel.id ?? _id?.toString();
+        return cleanFunnel as IFunnel;
       }
-      return funnel as IFunnel;
+      return null;
     } catch (error) {
       console.error('Error finding funnel by ID:', error);
       return null;
@@ -21,10 +23,11 @@ export class FunnelService {
     await connectToDatabase();
     try {
       const funnels = await Funnel.find({ subAccountId }).lean();
-      // Transform _id to id for all funnels for frontend compatibility
-      const result = funnels.map(f => {
-        (f as any).id = (f as any)._id;
-        return f as IFunnel;
+      // Clean up the funnel objects for Next.js compatibility
+      const result = funnels.map(funnel => {
+        const { _id, __v, ...cleanFunnel } = funnel;
+        cleanFunnel.id = cleanFunnel.id ?? _id?.toString();
+        return cleanFunnel as IFunnel;
       });
       return result;
     } catch (error) {
@@ -38,10 +41,11 @@ export class FunnelService {
     try {
       const funnel = new Funnel(funnelData);
       const savedFunnel = await funnel.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedFunnel.toObject();
-      (result as any).id = (result as any)._id;
-      return result as IFunnel;
+      // Clean up the funnel object for Next.js compatibility
+      const funnelObj = savedFunnel.toObject();
+      const { _id, __v, ...cleanResult } = funnelObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as IFunnel;
     } catch (error) {
       console.error('Error creating funnel:', error);
       throw error;
@@ -56,11 +60,14 @@ export class FunnelService {
         { ...funnelData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedFunnel) {
-        // Transform _id to id for frontend compatibility
-        (updatedFunnel as any).id = (updatedFunnel as any)._id;
+        // Clean up the funnel object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedFunnel } = updatedFunnel;
+        cleanUpdatedFunnel.id = cleanUpdatedFunnel.id ?? _id?.toString();
+        return cleanUpdatedFunnel as IFunnel;
       }
-      return updatedFunnel as IFunnel;
+      return null;
     } catch (error) {
       console.error('Error updating funnel:', error);
       throw error;

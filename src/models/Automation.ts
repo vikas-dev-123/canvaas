@@ -1,7 +1,9 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
-export interface IAutomation extends Document {
-  id?: string; // Added for frontend compatibility
+export interface IAutomation {
+  id: string;
+  _id?: string;
+  __v?: number;
   name: string;
   triggerId?: string;
   published: boolean;
@@ -10,13 +12,50 @@ export interface IAutomation extends Document {
   updatedAt: Date;
 }
 
-const AutomationSchema: Schema<IAutomation> = new Schema({
-  name: { type: String, required: true },
-  triggerId: { type: String, ref: 'Trigger', index: true },
-  published: { type: Boolean, default: false },
-  subAccountId: { type: String, ref: 'SubAccount', required: true, index: true },
-}, {
-  timestamps: true
-});
+const AutomationSchema = new Schema<IAutomation>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    triggerId: {
+      type: String,
+      ref: "Trigger",
+      index: true,
+    },
+    published: {
+      type: Boolean,
+      default: false,
+    },
+    subAccountId: {
+      type: String,
+      ref: "SubAccount",
+      required: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
 
-export const Automation = mongoose.models.Automation || mongoose.model<IAutomation>('Automation', AutomationSchema);
+export const Automation: Model<IAutomation> =
+  mongoose.models.Automation ||
+  mongoose.model<IAutomation>("Automation", AutomationSchema);

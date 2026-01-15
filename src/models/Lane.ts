@@ -1,7 +1,9 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
-export interface ILane extends Document {
-  id?: string; // Added for frontend compatibility
+export interface ILane {
+  id: string;
+  _id?: string;
+  __v?: number;
   name: string;
   pipelineId: string;
   order: number;
@@ -9,12 +11,44 @@ export interface ILane extends Document {
   updatedAt: Date;
 }
 
-const LaneSchema: Schema<ILane> = new Schema({
-  name: { type: String, required: true },
-  pipelineId: { type: String, ref: 'Pipeline', required: true, index: true },
-  order: { type: Number, default: 0 },
-}, {
-  timestamps: true
-});
+const LaneSchema = new Schema<ILane>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    pipelineId: {
+      type: String,
+      ref: "Pipeline",
+      required: true,
+      index: true,
+    },
+    order: {
+      type: Number,
+      default: 0,
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
 
-export const Lane = mongoose.models.Lane || mongoose.model<ILane>('Lane', LaneSchema);
+export const Lane: Model<ILane> =
+  mongoose.models.Lane || mongoose.model<ILane>("Lane", LaneSchema);

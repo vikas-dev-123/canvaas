@@ -1,8 +1,10 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import { ActionType } from '../lib/enums';
+import mongoose, { Schema, Model } from "mongoose";
+import { ActionType } from "../lib/enums";
 
-export interface IAction extends Document {
-  id?: string; // Added for frontend compatibility
+export interface IAction {
+  id: string;
+  _id?: string;
+  __v?: number;
   name: string;
   type: ActionType;
   automationId: string;
@@ -12,14 +14,53 @@ export interface IAction extends Document {
   updatedAt: Date;
 }
 
-const ActionSchema: Schema<IAction> = new Schema({
-  name: { type: String, required: true },
-  type: { type: String, enum: ActionType, required: true },
-  automationId: { type: String, ref: 'Automation', required: true, index: true },
-  order: { type: Number, required: true },
-  laneId: { type: String, default: "0" },
-}, {
-  timestamps: true
-});
+const ActionSchema = new Schema<IAction>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: Object.values(ActionType),
+      required: true,
+    },
+    automationId: {
+      type: String,
+      ref: "Automation",
+      required: true,
+      index: true,
+    },
+    order: {
+      type: Number,
+      required: true,
+    },
+    laneId: {
+      type: String,
+      default: "0",
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
 
-export const Action = mongoose.models.Action || mongoose.model<IAction>('Action', ActionSchema);
+export const Action: Model<IAction> =
+  mongoose.models.Action || mongoose.model<IAction>("Action", ActionSchema);

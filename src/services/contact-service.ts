@@ -7,10 +7,12 @@ export class ContactService {
     try {
       const contact = await Contact.findById(id).lean();
       if (contact) {
-        // Transform _id to id for frontend compatibility
-        (contact as any).id = (contact as any)._id;
+        // Clean up the contact object for Next.js compatibility
+        const { _id, __v, ...cleanContact } = contact;
+        cleanContact.id = cleanContact.id ?? _id?.toString();
+        return cleanContact as IContact;
       }
-      return contact as IContact;
+      return null;
     } catch (error) {
       console.error('Error finding contact by ID:', error);
       return null;
@@ -21,10 +23,11 @@ export class ContactService {
     await connectToDatabase();
     try {
       const contacts = await Contact.find({ subAccountId }).lean();
-      // Transform _id to id for all contacts for frontend compatibility
+      // Clean up the contact objects for Next.js compatibility
       const result = contacts.map(contact => {
-        (contact as any).id = (contact as any)._id;
-        return contact as IContact;
+        const { _id, __v, ...cleanContact } = contact;
+        cleanContact.id = cleanContact.id ?? _id?.toString();
+        return cleanContact as IContact;
       });
       return result;
     } catch (error) {
@@ -39,10 +42,11 @@ export class ContactService {
       const contacts = await Contact.find({ 
         name: { $regex: searchTerms, $options: 'i' } 
       }).lean();
-      // Transform _id to id for all contacts for frontend compatibility
+      // Clean up the contact objects for Next.js compatibility
       const result = contacts.map(contact => {
-        (contact as any).id = (contact as any)._id;
-        return contact as IContact;
+        const { _id, __v, ...cleanContact } = contact;
+        cleanContact.id = cleanContact.id ?? _id?.toString();
+        return cleanContact as IContact;
       });
       return result;
     } catch (error) {
@@ -56,10 +60,11 @@ export class ContactService {
     try {
       const contact = new Contact(contactData);
       const savedContact = await contact.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedContact.toObject();
-      (result as any).id = (result as any)._id;
-      return result as IContact;
+      // Clean up the contact object for Next.js compatibility
+      const contactObj = savedContact.toObject();
+      const { _id, __v, ...cleanResult } = contactObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as IContact;
     } catch (error) {
       console.error('Error creating contact:', error);
       throw error;
@@ -74,11 +79,14 @@ export class ContactService {
         { ...contactData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedContact) {
-        // Transform _id to id for frontend compatibility
-        (updatedContact as any).id = (updatedContact as any)._id;
+        // Clean up the contact object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedContact } = updatedContact;
+        cleanUpdatedContact.id = cleanUpdatedContact.id ?? _id?.toString();
+        return cleanUpdatedContact as IContact;
       }
-      return updatedContact as IContact;
+      return null;
     } catch (error) {
       console.error('Error updating contact:', error);
       throw error;

@@ -1,7 +1,9 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
-export interface IAddOns extends Document {
-  id?: string; // Added for frontend compatibility
+export interface IAddOns {
+  id: string;
+  _id?: string;
+  __v?: number;
   name: string;
   active: boolean;
   priceId: string;
@@ -10,13 +12,49 @@ export interface IAddOns extends Document {
   updatedAt: Date;
 }
 
-const AddOnsSchema: Schema<IAddOns> = new Schema({
-  name: { type: String, required: true },
-  active: { type: Boolean, default: false },
-  priceId: { type: String, required: true, unique: true },
-  agencyId: { type: String, ref: 'Agency' },
-}, {
-  timestamps: true
-});
+const AddOnsSchema = new Schema<IAddOns>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    active: {
+      type: Boolean,
+      default: false,
+    },
+    priceId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    agencyId: {
+      type: String,
+      ref: "Agency",
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
 
-export const AddOns = mongoose.models.AddOns || mongoose.model<IAddOns>('AddOns', AddOnsSchema);
+export const AddOns: Model<IAddOns> =
+  mongoose.models.AddOns || mongoose.model<IAddOns>("AddOns", AddOnsSchema);

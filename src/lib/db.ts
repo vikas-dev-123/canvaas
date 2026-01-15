@@ -42,3 +42,6 @@ export async function connectDB() {
 
   return globalWithMongoose.mongooseConn!.conn;
 }
+
+// Alias for backward compatibility
+export const connectToDatabase = connectDB;

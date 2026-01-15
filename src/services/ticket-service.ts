@@ -9,10 +9,12 @@ export class TicketService {
     try {
       const ticket = await Ticket.findById(id).lean();
       if (ticket) {
-        // Transform _id to id for frontend compatibility
-        (ticket as any).id = (ticket as any)._id;
+        // Clean up the ticket object for Next.js compatibility
+        const { _id, __v, ...cleanTicket } = ticket;
+        cleanTicket.id = cleanTicket.id ?? _id?.toString();
+        return cleanTicket as ITicket;
       }
-      return ticket as ITicket;
+      return null;
     } catch (error) {
       console.error('Error finding ticket by ID:', error);
       return null;
@@ -23,10 +25,11 @@ export class TicketService {
     await connectToDatabase();
     try {
       const tickets = await Ticket.find({ laneId }).sort({ order: 1 }).lean();
-      // Transform _id to id for all tickets for frontend compatibility
+      // Clean up the ticket objects for Next.js compatibility
       const result = tickets.map(ticket => {
-        (ticket as any).id = (ticket as any)._id;
-        return ticket as ITicket;
+        const { _id, __v, ...cleanTicket } = ticket;
+        cleanTicket.id = cleanTicket.id ?? _id?.toString();
+        return cleanTicket as ITicket;
       });
       return result;
     } catch (error) {
@@ -39,10 +42,11 @@ export class TicketService {
     await connectToDatabase();
     try {
       const tickets = await Ticket.find({ customerId }).lean();
-      // Transform _id to id for all tickets for frontend compatibility
+      // Clean up the ticket objects for Next.js compatibility
       const result = tickets.map(ticket => {
-        (ticket as any).id = (ticket as any)._id;
-        return ticket as ITicket;
+        const { _id, __v, ...cleanTicket } = ticket;
+        cleanTicket.id = cleanTicket.id ?? _id?.toString();
+        return cleanTicket as ITicket;
       });
       return result;
     } catch (error) {

@@ -1,16 +1,18 @@
-import { connectToDatabase } from '../lib/db';
+import { connectDB } from '../lib/db';
 import { Media, IMedia } from '../models/Media';
 
 export class MediaService {
   static async findById(id: string): Promise<IMedia | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const media = await Media.findById(id).lean();
       if (media) {
-        // Transform _id to id for frontend compatibility
-        (media as any).id = (media as any)._id;
+        // Clean up the media object for Next.js compatibility
+        const { _id, __v, ...cleanMedia } = media;
+        cleanMedia.id = cleanMedia.id ?? _id?.toString();
+        return cleanMedia as IMedia;
       }
-      return media as IMedia;
+      return null;
     } catch (error) {
       console.error('Error finding media by ID:', error);
       return null;
@@ -18,13 +20,14 @@ export class MediaService {
   }
 
   static async findBySubAccountId(subAccountId: string): Promise<IMedia[]> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const media = await Media.find({ subAccountId }).lean();
-      // Transform _id to id for all media for frontend compatibility
+      // Clean up the media objects for Next.js compatibility
       const result = media.map(m => {
-        (m as any).id = (m as any)._id;
-        return m as IMedia;
+        const { _id, __v, ...cleanMedia } = m;
+        cleanMedia.id = cleanMedia.id ?? _id?.toString();
+        return cleanMedia as IMedia;
       });
       return result;
     } catch (error) {
@@ -34,14 +37,15 @@ export class MediaService {
   }
 
   static async create(mediaData: Omit<IMedia, '_id'>): Promise<IMedia> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const media = new Media(mediaData);
       const savedMedia = await media.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedMedia.toObject();
-      (result as any).id = (result as any)._id;
-      return result as IMedia;
+      // Clean up the media object for Next.js compatibility
+      const mediaObj = savedMedia.toObject();
+      const { _id, __v, ...cleanResult } = mediaObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as IMedia;
     } catch (error) {
       console.error('Error creating media:', error);
       throw error;
@@ -49,18 +53,21 @@ export class MediaService {
   }
 
   static async update(id: string, mediaData: Partial<IMedia>): Promise<IMedia | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const updatedMedia = await Media.findByIdAndUpdate(
         id,
         { ...mediaData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedMedia) {
-        // Transform _id to id for frontend compatibility
-        (updatedMedia as any).id = (updatedMedia as any)._id;
+        // Clean up the media object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedMedia } = updatedMedia;
+        cleanUpdatedMedia.id = cleanUpdatedMedia.id ?? _id?.toString();
+        return cleanUpdatedMedia as IMedia;
       }
-      return updatedMedia as IMedia;
+      return null;
     } catch (error) {
       console.error('Error updating media:', error);
       throw error;
@@ -68,7 +75,7 @@ export class MediaService {
   }
 
   static async delete(id: string): Promise<boolean> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const result = await Media.findByIdAndDelete(id);
       return !!result;

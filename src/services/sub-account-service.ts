@@ -1,24 +1,21 @@
-import { connectToDatabase } from '../lib/db';
+import { connectDB } from '../lib/db';
 import { SubAccount, ISubAccount } from '../models/SubAccount';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SubAccountService {
   static async findById(id: string): Promise<ISubAccount | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       // Find by the custom id field (UUID) - primary application ID
       const subAccount = await SubAccount.findOne({ id: id }).lean();
       
       if (subAccount) {
-        // Ensure the id field is preserved and return a clean plain object
-        const cleanSubAccount = { ...subAccount };
-        cleanSubAccount.id = cleanSubAccount.id || (cleanSubAccount as any)._id;
-        // Remove Mongoose-specific properties
-        delete (cleanSubAccount as any).__v;
+        // Clean up the subAccount object for Next.js compatibility
+        const { _id, __v, ...cleanSubAccount } = subAccount;
+        cleanSubAccount.id = cleanSubAccount.id ?? _id?.toString();
         return cleanSubAccount as ISubAccount;
       }
-      // Return clean object if no subaccount found
-      return subAccount as ISubAccount;
+      return null;
     } catch (error) {
       console.error('Error finding subaccount by ID:', error);
       return null;
@@ -26,16 +23,13 @@ export class SubAccountService {
   }
 
   static async findByAgencyId(agencyId: string): Promise<ISubAccount[]> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const subAccounts = await SubAccount.find({ agencyId }).lean();
-      // Ensure the id field is preserved for all subaccounts and return clean plain objects
+      // Clean up the subAccount objects for Next.js compatibility
       const result = subAccounts.map(subAccount => {
-        const cleanSubAccount = { ...subAccount };
-        cleanSubAccount.id = cleanSubAccount.id || (cleanSubAccount as any)._id;
-        // Remove Mongoose-specific properties
-        delete (cleanSubAccount as any).__v;
-        delete (cleanSubAccount as any)._id;
+        const { _id, __v, ...cleanSubAccount } = subAccount;
+        cleanSubAccount.id = cleanSubAccount.id ?? _id?.toString();
         return cleanSubAccount as ISubAccount;
       });
       return result;
@@ -46,7 +40,7 @@ export class SubAccountService {
   }
 
   static async create(subAccountData: Omit<ISubAccount, '_id' | 'createdAt' | 'updatedAt'>): Promise<ISubAccount> {
-    await connectToDatabase();
+    await connectDB();
     try {
       // Ensure the subaccount has a UUID id if not provided
       const dataToSave = {
@@ -55,14 +49,10 @@ export class SubAccountService {
       };
       const subAccount = new SubAccount(dataToSave);
       const savedSubAccount = await subAccount.save();
-      const result = savedSubAccount.toObject();
-      // Create a clean plain object without Mongoose-specific properties
-      const cleanResult = { ...result };
-      // Ensure the id field is preserved
-      cleanResult.id = cleanResult.id;
-      // Remove Mongoose-specific properties
-      delete (cleanResult as any).__v;
-      delete (cleanResult as any)._id;
+      // Clean up the subAccount object for Next.js compatibility
+      const subAccountObj = savedSubAccount.toObject();
+      const { _id, __v, ...cleanResult } = subAccountObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
       return cleanResult as ISubAccount;
     } catch (error) {
       console.error('Error creating subaccount:', error);
@@ -71,24 +61,21 @@ export class SubAccountService {
   }
 
   static async update(id: string, subAccountData: Partial<Omit<ISubAccount, '_id' | 'createdAt' | 'updatedAt'>>): Promise<ISubAccount | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const updatedSubAccount = await SubAccount.findOneAndUpdate(
         { id: id },
         { ...subAccountData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedSubAccount) {
-        // Create a clean plain object without Mongoose-specific properties
-        const cleanUpdatedSubAccount = { ...updatedSubAccount };
-        // Ensure the id field is preserved
-        cleanUpdatedSubAccount.id = cleanUpdatedSubAccount.id;
-        // Remove Mongoose-specific properties
-        delete (cleanUpdatedSubAccount as any).__v;
+        // Clean up the subAccount object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedSubAccount } = updatedSubAccount;
+        cleanUpdatedSubAccount.id = cleanUpdatedSubAccount.id ?? _id?.toString();
         return cleanUpdatedSubAccount as ISubAccount;
       }
-      // Return clean object if no subaccount found
-      return updatedSubAccount as ISubAccount;
+      return null;
     } catch (error) {
       console.error('Error updating subaccount:', error);
       throw error;
@@ -96,7 +83,7 @@ export class SubAccountService {
   }
 
   static async delete(id: string): Promise<boolean> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const result = await SubAccount.findOneAndDelete({ id: id });
       return !!result;

@@ -1,16 +1,18 @@
-import { connectToDatabase } from '../lib/db';
+import { connectDB } from '../lib/db';
 import { Notification, INotification } from '../models/Notification';
 
 export class NotificationService {
   static async findById(id: string): Promise<INotification | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const notification = await Notification.findById(id).lean();
       if (notification) {
-        // Transform _id to id for frontend compatibility
-        (notification as any).id = (notification as any)._id;
+        // Clean up the notification object for Next.js compatibility
+        const { _id, __v, ...cleanNotification } = notification;
+        cleanNotification.id = cleanNotification.id ?? _id?.toString();
+        return cleanNotification as INotification;
       }
-      return notification as INotification;
+      return null;
     } catch (error) {
       console.error('Error finding notification by ID:', error);
       return null;
@@ -18,13 +20,14 @@ export class NotificationService {
   }
 
   static async findByAgencyId(agencyId: string): Promise<INotification[]> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const notifications = await Notification.find({ agencyId }).lean();
-      // Transform _id to id for all notifications for frontend compatibility
-      const result = notifications.map(n => {
-        (n as any).id = (n as any)._id;
-        return n as INotification;
+      // Clean up the notification objects for Next.js compatibility
+      const result = notifications.map(notification => {
+        const { _id, __v, ...cleanNotification } = notification;
+        cleanNotification.id = cleanNotification.id ?? _id?.toString();
+        return cleanNotification as INotification;
       });
       return result;
     } catch (error) {
@@ -34,14 +37,15 @@ export class NotificationService {
   }
 
   static async create(notificationData: Omit<INotification, '_id'>): Promise<INotification> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const notification = new Notification(notificationData);
       const savedNotification = await notification.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedNotification.toObject();
-      (result as any).id = (result as any)._id;
-      return result as INotification;
+      // Clean up the notification object for Next.js compatibility
+      const notificationObj = savedNotification.toObject();
+      const { _id, __v, ...cleanResult } = notificationObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as INotification;
     } catch (error) {
       console.error('Error creating notification:', error);
       throw error;
@@ -49,18 +53,21 @@ export class NotificationService {
   }
 
   static async update(id: string, notificationData: Partial<INotification>): Promise<INotification | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const updatedNotification = await Notification.findByIdAndUpdate(
         id,
         { ...notificationData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedNotification) {
-        // Transform _id to id for frontend compatibility
-        (updatedNotification as any).id = (updatedNotification as any)._id;
+        // Clean up the notification object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedNotification } = updatedNotification;
+        cleanUpdatedNotification.id = cleanUpdatedNotification.id ?? _id?.toString();
+        return cleanUpdatedNotification as INotification;
       }
-      return updatedNotification as INotification;
+      return null;
     } catch (error) {
       console.error('Error updating notification:', error);
       throw error;
@@ -68,7 +75,7 @@ export class NotificationService {
   }
 
   static async delete(id: string): Promise<boolean> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const result = await Notification.findByIdAndDelete(id);
       return !!result;

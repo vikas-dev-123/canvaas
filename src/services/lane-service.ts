@@ -1,16 +1,18 @@
-import { connectToDatabase } from '../lib/db';
+import { connectDB } from '../lib/db';
 import { Lane, ILane } from '../models/Lane';
 
 export class LaneService {
   static async findById(id: string): Promise<ILane | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const lane = await Lane.findById(id).lean();
       if (lane) {
-        // Transform _id to id for frontend compatibility
-        (lane as any).id = (lane as any)._id;
+        // Clean up the lane object for Next.js compatibility
+        const { _id, __v, ...cleanLane } = lane;
+        cleanLane.id = cleanLane.id ?? _id?.toString();
+        return cleanLane as ILane;
       }
-      return lane as ILane;
+      return null;
     } catch (error) {
       console.error('Error finding lane by ID:', error);
       return null;
@@ -18,13 +20,14 @@ export class LaneService {
   }
 
   static async findByPipelineId(pipelineId: string): Promise<ILane[]> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const lanes = await Lane.find({ pipelineId }).sort({ order: 1 }).lean();
-      // Transform _id to id for all lanes for frontend compatibility
+      // Clean up the lane objects for Next.js compatibility
       const result = lanes.map(lane => {
-        (lane as any).id = (lane as any)._id;
-        return lane as ILane;
+        const { _id, __v, ...cleanLane } = lane;
+        cleanLane.id = cleanLane.id ?? _id?.toString();
+        return cleanLane as ILane;
       });
       return result;
     } catch (error) {
@@ -34,14 +37,15 @@ export class LaneService {
   }
 
   static async create(laneData: Omit<ILane, '_id'>): Promise<ILane> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const lane = new Lane(laneData);
       const savedLane = await lane.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedLane.toObject();
-      (result as any).id = (result as any)._id;
-      return result as ILane;
+      // Clean up the lane object for Next.js compatibility
+      const laneObj = savedLane.toObject();
+      const { _id, __v, ...cleanResult } = laneObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as ILane;
     } catch (error) {
       console.error('Error creating lane:', error);
       throw error;
@@ -49,18 +53,21 @@ export class LaneService {
   }
 
   static async update(id: string, laneData: Partial<ILane>): Promise<ILane | null> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const updatedLane = await Lane.findByIdAndUpdate(
         id,
         { ...laneData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedLane) {
-        // Transform _id to id for frontend compatibility
-        (updatedLane as any).id = (updatedLane as any)._id;
+        // Clean up the lane object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedLane } = updatedLane;
+        cleanUpdatedLane.id = cleanUpdatedLane.id ?? _id?.toString();
+        return cleanUpdatedLane as ILane;
       }
-      return updatedLane as ILane;
+      return null;
     } catch (error) {
       console.error('Error updating lane:', error);
       throw error;
@@ -68,7 +75,7 @@ export class LaneService {
   }
 
   static async delete(id: string): Promise<boolean> {
-    await connectToDatabase();
+    await connectDB();
     try {
       const result = await Lane.findByIdAndDelete(id);
       return !!result;

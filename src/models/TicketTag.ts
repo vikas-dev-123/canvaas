@@ -1,21 +1,70 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
-export interface ITicketTag extends Document {
-  id?: string; // Added for frontend compatibility
+/**
+ * Plain interface (NO Document)
+ * Next.js 14 serialization safe
+ */
+export interface ITicketTag {
+  id: string;
+  _id?: string;
+  __v?: number;
   ticketId: string;
   tagId: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const TicketTagSchema: Schema<ITicketTag> = new Schema({
-  ticketId: { type: String, ref: 'Ticket', required: true, index: true },
-  tagId: { type: String, ref: 'Tag', required: true, index: true },
-}, {
-  timestamps: true
-});
+const TicketTagSchema = new Schema<ITicketTag>(
+  {
+    ticketId: {
+      type: String,
+      ref: "Ticket",
+      required: true,
+      index: true,
+    },
+    tagId: {
+      type: String,
+      ref: "Tag",
+      required: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
 
-// Ensure unique combination of ticketId and tagId
-TicketTagSchema.index({ ticketId: 1, tagId: 1 }, { unique: true });
+    /**
+     * _id → id conversion
+     * Fixes: Objects with toJSON methods warning
+     */
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
 
-export const TicketTag = mongoose.models.TicketTag || mongoose.model<ITicketTag>('TicketTag', TicketTagSchema);
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
+
+/**
+ * Prevent duplicate tag assignment
+ * One tag can appear only once per ticket
+ */
+TicketTagSchema.index(
+  { ticketId: 1, tagId: 1 },
+  { unique: true }
+);
+
+export const TicketTag: Model<ITicketTag> =
+  mongoose.models.TicketTag ||
+  mongoose.model<ITicketTag>("TicketTag", TicketTagSchema);

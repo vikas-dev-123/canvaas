@@ -1,31 +1,103 @@
-import mongoose, { Document, Schema } from 'mongoose';
-import { Plan } from '../lib/enums';
+import mongoose, { Schema, Model } from "mongoose";
 
-export interface ISubscription extends Document {
-  id?: string; // Added for frontend compatibility
+/**
+ * Plain interface (NO Document)
+ * Prevents Next.js serialization issues
+ */
+export interface ISubscription {
+  id: string;
+  _id?: string;
+  __v?: number;
   plan?: string;
   price?: string;
   active: boolean;
   priceId: string;
   customerId: string;
   currentPeriodEndDate: Date;
-  subscritiptionId: string;
+  subscriptionId: string;
   agencyId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const SubscriptionSchema: Schema<ISubscription> = new Schema({
-  plan: { type: String },
-  price: { type: String },
-  active: { type: Boolean, default: false },
-  priceId: { type: String, required: true },
-  customerId: { type: String, required: true },
-  currentPeriodEndDate: { type: Date, required: true },
-  subscritiptionId: { type: String, required: true, unique: true },
-  agencyId: { type: String, ref: 'Agency', unique: true },
-}, {
-  timestamps: true
-});
+const SubscriptionSchema = new Schema<ISubscription>(
+  {
+    plan: {
+      type: String,
+      trim: true,
+    },
+    price: {
+      type: String,
+      trim: true,
+    },
+    active: {
+      type: Boolean,
+      default: false,
+    },
+    priceId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    customerId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    currentPeriodEndDate: {
+      type: Date,
+      required: true,
+    },
 
-export const Subscription = mongoose.models.Subscription || mongoose.model<ISubscription>('Subscription', SubscriptionSchema);
+    /**
+     * ⚠️ FIXED TYPO
+     * subscritiptionId ❌ → subscriptionId ✅
+     */
+    subscriptionId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+
+    agencyId: {
+      type: String,
+      ref: "Agency",
+      unique: true,
+      sparse: true, // allows null
+    },
+  },
+  {
+    timestamps: true,
+
+    /**
+     * Fix Next.js Server → Client serialization
+     */
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
+
+/**
+ * Helpful compound index for Stripe lookups
+ */
+SubscriptionSchema.index({ customerId: 1, active: 1 });
+
+export const Subscription: Model<ISubscription> =
+  mongoose.models.Subscription ||
+  mongoose.model<ISubscription>("Subscription", SubscriptionSchema);

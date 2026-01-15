@@ -7,10 +7,12 @@ export class TagService {
     try {
       const tag = await Tag.findById(id).lean();
       if (tag) {
-        // Transform _id to id for frontend compatibility
-        (tag as any).id = (tag as any)._id;
+        // Clean up the tag object for Next.js compatibility
+        const { _id, __v, ...cleanTag } = tag;
+        cleanTag.id = cleanTag.id ?? _id?.toString();
+        return cleanTag as ITag;
       }
-      return tag as ITag;
+      return null;
     } catch (error) {
       console.error('Error finding tag by ID:', error);
       return null;
@@ -21,10 +23,11 @@ export class TagService {
     await connectToDatabase();
     try {
       const tags = await Tag.find({ subAccountId }).lean();
-      // Transform _id to id for all tags for frontend compatibility
+      // Clean up the tag objects for Next.js compatibility
       const result = tags.map(tag => {
-        (tag as any).id = (tag as any)._id;
-        return tag as ITag;
+        const { _id, __v, ...cleanTag } = tag;
+        cleanTag.id = cleanTag.id ?? _id?.toString();
+        return cleanTag as ITag;
       });
       return result;
     } catch (error) {
@@ -38,10 +41,11 @@ export class TagService {
     try {
       const tag = new Tag(tagData);
       const savedTag = await tag.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedTag.toObject();
-      (result as any).id = (result as any)._id;
-      return result as ITag;
+      // Clean up the tag object for Next.js compatibility
+      const tagObj = savedTag.toObject();
+      const { _id, __v, ...cleanResult } = tagObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as ITag;
     } catch (error) {
       console.error('Error creating tag:', error);
       throw error;
@@ -56,11 +60,14 @@ export class TagService {
         { ...tagData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedTag) {
-        // Transform _id to id for frontend compatibility
-        (updatedTag as any).id = (updatedTag as any)._id;
+        // Clean up the tag object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedTag } = updatedTag;
+        cleanUpdatedTag.id = cleanUpdatedTag.id ?? _id?.toString();
+        return cleanUpdatedTag as ITag;
       }
-      return updatedTag as ITag;
+      return null;
     } catch (error) {
       console.error('Error updating tag:', error);
       throw error;

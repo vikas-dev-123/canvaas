@@ -6,7 +6,13 @@ export class ActionService {
     await connectToDatabase();
     try {
       const action = await Action.findById(id).lean();
-      return action as IAction;
+      if (action) {
+        // Clean up the action object for Next.js compatibility
+        const { _id, __v, ...cleanAction } = action;
+        cleanAction.id = cleanAction.id ?? _id?.toString();
+        return cleanAction as IAction;
+      }
+      return null;
     } catch (error) {
       console.error('Error finding action by ID:', error);
       return null;
@@ -18,7 +24,11 @@ export class ActionService {
     try {
       const action = new Action(actionData);
       const savedAction = await action.save();
-      return savedAction as IAction;
+      // Clean up the action object for Next.js compatibility
+      const actionObj = savedAction.toObject();
+      const { _id, __v, ...cleanResult } = actionObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as IAction;
     } catch (error) {
       console.error('Error creating action:', error);
       throw error;
@@ -33,7 +43,14 @@ export class ActionService {
         { ...actionData, updatedAt: new Date() },
         { new: true }
       ).lean();
-      return updatedAction as IAction;
+      
+      if (updatedAction) {
+        // Clean up the action object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedAction } = updatedAction;
+        cleanUpdatedAction.id = cleanUpdatedAction.id ?? _id?.toString();
+        return cleanUpdatedAction as IAction;
+      }
+      return null;
     } catch (error) {
       console.error('Error updating action:', error);
       throw error;

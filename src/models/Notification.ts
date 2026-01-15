@@ -1,7 +1,9 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
-export interface INotification extends Document {
-  id?: string; // Added for frontend compatibility
+export interface INotification {
+  id: string;
+  _id?: string;
+  __v?: number;
   notification: string;
   agencyId: string;
   subAccountId?: string;
@@ -10,13 +12,52 @@ export interface INotification extends Document {
   updatedAt: Date;
 }
 
-const NotificationSchema: Schema<INotification> = new Schema({
-  notification: { type: String, required: true },
-  agencyId: { type: String, ref: 'Agency', required: true, index: true },
-  subAccountId: { type: String, ref: 'SubAccount', index: true },
-  userId: { type: String, ref: 'User', required: true, index: true },
-}, {
-  timestamps: true
-});
+const NotificationSchema = new Schema<INotification>(
+  {
+    notification: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    agencyId: {
+      type: String,
+      ref: "Agency",
+      required: true,
+      index: true,
+    },
+    subAccountId: {
+      type: String,
+      ref: "SubAccount",
+      index: true,
+    },
+    userId: {
+      type: String,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform(doc, ret, options) {
+        const { _id, __v, ...result } = ret;
+        result.id = result.id ?? _id?.toString();
+        return result;
+      },
+    },
+  }
+);
 
-export const Notification = mongoose.models.Notification || mongoose.model<INotification>('Notification', NotificationSchema);
+export const Notification: Model<INotification> =
+  mongoose.models.Notification ||
+  mongoose.model<INotification>("Notification", NotificationSchema);

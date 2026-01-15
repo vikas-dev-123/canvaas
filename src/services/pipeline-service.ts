@@ -7,10 +7,12 @@ export class PipelineService {
     try {
       const pipeline = await Pipeline.findById(id).lean();
       if (pipeline) {
-        // Transform _id to id for frontend compatibility
-        (pipeline as any).id = (pipeline as any)._id;
+        // Clean up the pipeline object for Next.js compatibility
+        const { _id, __v, ...cleanPipeline } = pipeline;
+        cleanPipeline.id = cleanPipeline.id ?? _id?.toString();
+        return cleanPipeline as IPipeline;
       }
-      return pipeline as IPipeline;
+      return null;
     } catch (error) {
       console.error('Error finding pipeline by ID:', error);
       return null;
@@ -22,10 +24,11 @@ export class PipelineService {
     try {
       const pipeline = new Pipeline(pipelineData);
       const savedPipeline = await pipeline.save();
-      // Transform _id to id for frontend compatibility
-      const result = savedPipeline.toObject();
-      (result as any).id = (result as any)._id;
-      return result as IPipeline;
+      // Clean up the pipeline object for Next.js compatibility
+      const pipelineObj = savedPipeline.toObject();
+      const { _id, __v, ...cleanResult } = pipelineObj;
+      cleanResult.id = cleanResult.id ?? _id?.toString();
+      return cleanResult as IPipeline;
     } catch (error) {
       console.error('Error creating pipeline:', error);
       throw error;
@@ -40,11 +43,14 @@ export class PipelineService {
         { ...pipelineData, updatedAt: new Date() },
         { new: true }
       ).lean();
+      
       if (updatedPipeline) {
-        // Transform _id to id for frontend compatibility
-        (updatedPipeline as any).id = (updatedPipeline as any)._id;
+        // Clean up the pipeline object for Next.js compatibility
+        const { _id, __v, ...cleanUpdatedPipeline } = updatedPipeline;
+        cleanUpdatedPipeline.id = cleanUpdatedPipeline.id ?? _id?.toString();
+        return cleanUpdatedPipeline as IPipeline;
       }
-      return updatedPipeline as IPipeline;
+      return null;
     } catch (error) {
       console.error('Error updating pipeline:', error);
       throw error;
