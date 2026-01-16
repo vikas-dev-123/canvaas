@@ -1,6 +1,6 @@
 "use client";
 
-import { Agency } from "@/lib/interfaces";
+import { IAgency } from "@/models/Agency";
 import React, { useEffect, useState } from "react";
 import { useToast } from "../ui/use-toast";
 import { useRouter } from "next/navigation";
@@ -58,7 +58,7 @@ import Loading from "../global/loading";
 import { Role } from "@/lib/enums";
 
 type Props = {
-  data?: Partial<Agency>;
+  data?: Partial<IAgency>;
 };
 
 const FormSchema = z.object({

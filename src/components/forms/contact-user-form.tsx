@@ -9,9 +9,10 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { saveActivityLogsNotification, upsertContact } from "@/lib/queries";
-import { toast } from "../ui/use-toast";
+import { useToast } from "../ui/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { IContact } from "@/models/Contact";
 
 interface ContactUserFormProps {
     subaccountId: string;
@@ -25,6 +26,7 @@ const ContactUserFormSchema = z.object({
 const ContactUserForm: React.FC<ContactUserFormProps> = ({ subaccountId }) => {
     const { setClose, data } = useModal();
     const router = useRouter();
+    const { toast } = useToast();
 
     const form = useForm<z.infer<typeof ContactUserFormSchema>>({
         mode: "onChange",
@@ -51,15 +53,17 @@ const ContactUserForm: React.FC<ContactUserFormProps> = ({ subaccountId }) => {
                 name: values.name,
             });
 
-            await saveActivityLogsNotification({
-                agencyId: undefined,
-                description: `Updated a contact | ${response?.name}`,
-                subAccountId: subaccountId,
-            });
+            if (response) {
+                await saveActivityLogsNotification({
+                    agencyId: undefined,
+                    description: `Updated a contact | ${response.name}`,
+                    subAccountId: subaccountId,
+                });
+            }
 
             toast({
                 title: "Success",
-                description: "Saved funnel details",
+                description: "Saved contact details",
             });
             setClose();
             router.refresh();

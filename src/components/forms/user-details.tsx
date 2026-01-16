@@ -4,7 +4,8 @@ import { changeUserPermission, getAuthUserDetails, getUserPermissions, saveActiv
 import { AuthUSerWithAgencySigebarOptionsSubAccounts, UserWithPermissionsAndSubAccounts } from "@/lib/types";
 import { useModal } from "@/providers/modal-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SubAccount, User } from "@/lib/interfaces";
+import { ISubAccount } from "@/models/SubAccount";
+import { IUser } from "@/models/User";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -23,8 +24,8 @@ import { v4 } from "uuid";
 type Props = {
     id: string | null;
     type: "agency" | "subaccount";
-    userData?: Partial<User>;
-    subAccounts?: SubAccount[];
+    userData?: Partial<IUser>;
+    subAccounts?: ISubAccount[];
 };
 
 const UserDetails = ({ id, type, userData, subAccounts }: Props) => {
