@@ -70,6 +70,74 @@ export const deleteUser = async (userId: string) => {
   return result;
 };
 
+export const initializeDefaultSidebarOptions = async (agencyId: string) => {
+  try {
+    // Check if agency already has sidebar options
+    const existingOptions = await AgencySidebarOptionService.findByAgencyId(agencyId);
+    
+    if (existingOptions.length > 0) {
+      // Already has options, don't create duplicates
+      return existingOptions;
+    }
+    
+    // Create default sidebar options
+    const defaultSidebarOptions = [
+      {
+        name: "Dashboard",
+        icon: "category",
+        link: `/agency/${agencyId}`,
+        agencyId: agencyId
+      },
+      {
+        name: "Launchpad",
+        icon: "clipboardIcon",
+        link: `/agency/${agencyId}/launchpad`,
+        agencyId: agencyId
+      },
+      {
+        name: "Billing",
+        icon: "payment",
+        link: `/agency/${agencyId}/billing`,
+        agencyId: agencyId
+      },
+      {
+        name: "Settings",
+        icon: "settings",
+        link: `/agency/${agencyId}/settings`,
+        agencyId: agencyId
+      },
+      {
+        name: "Sub Accounts",
+        icon: "person",
+        link: `/agency/${agencyId}/all-subaccounts`,
+        agencyId: agencyId
+      },
+      {
+        name: "Team",
+        icon: "shield",
+        link: `/agency/${agencyId}/team`,
+        agencyId: agencyId
+      }
+    ];
+    
+    // Create each default sidebar option
+    const createdOptions = [];
+    for (const option of defaultSidebarOptions) {
+      try {
+        const createdOption = await AgencySidebarOptionService.create(option as any);
+        createdOptions.push(createdOption);
+      } catch (error) {
+        console.error('Error creating default sidebar option:', error);
+      }
+    }
+    
+    return createdOptions;
+  } catch (error) {
+    console.error('Error initializing default sidebar options:', error);
+    return [];
+  }
+};
+
 export const getAuthUserDetails = async () => {
   const user = await currentUser();
 
@@ -88,7 +156,13 @@ export const getAuthUserDetails = async () => {
   if (userData.agencyId) {
     const agency = await AgencyService.findById(userData.agencyId);
     if (agency) {
-      const sidebarOptions = await AgencySidebarOptionService.findByAgencyId(agency.id);
+      let sidebarOptions = await AgencySidebarOptionService.findByAgencyId(agency.id);
+      
+      // Initialize default sidebar options if none exist
+      if (sidebarOptions.length === 0) {
+        sidebarOptions = await initializeDefaultSidebarOptions(agency.id);
+      }
+      
       const subAccounts = await SubAccountService.findByAgencyId(agency.id);
       
       // Add sidebar options to agency
@@ -374,6 +448,57 @@ export const upsertAgency = async (agency: any, price?: any) => {
         });
       } else {
         agencyDetails = await AgencyService.create(agency);
+      }
+      
+      // Create default sidebar options for new agency
+      if (agencyDetails) {
+        const defaultSidebarOptions = [
+          {
+            name: "Dashboard",
+            icon: "category",
+            link: `/agency/${agencyDetails.id}`,
+            agencyId: agencyDetails.id
+          },
+          {
+            name: "Launchpad",
+            icon: "clipboardIcon",
+            link: `/agency/${agencyDetails.id}/launchpad`,
+            agencyId: agencyDetails.id
+          },
+          {
+            name: "Billing",
+            icon: "payment",
+            link: `/agency/${agencyDetails.id}/billing`,
+            agencyId: agencyDetails.id
+          },
+          {
+            name: "Settings",
+            icon: "settings",
+            link: `/agency/${agencyDetails.id}/settings`,
+            agencyId: agencyDetails.id
+          },
+          {
+            name: "Sub Accounts",
+            icon: "person",
+            link: `/agency/${agencyDetails.id}/all-subaccounts`,
+            agencyId: agencyDetails.id
+          },
+          {
+            name: "Team",
+            icon: "shield",
+            link: `/agency/${agencyDetails.id}/team`,
+            agencyId: agencyDetails.id
+          }
+        ];
+        
+        // Create each default sidebar option
+        for (const option of defaultSidebarOptions) {
+          try {
+            await AgencySidebarOptionService.create(option as any);
+          } catch (error) {
+            console.error('Error creating default sidebar option:', error);
+          }
+        }
       }
     }
 

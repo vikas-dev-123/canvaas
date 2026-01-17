@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Plan } from "@/lib/interfaces";
+import { Plan } from "@/lib/enums";
 import { PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import React, { useState } from "react";
 

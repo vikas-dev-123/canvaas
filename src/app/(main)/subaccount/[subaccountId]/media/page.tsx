@@ -1,6 +1,6 @@
 import BlurPage from "@/components/global/blur-page";
 import MediaComponent from "@/components/media";
-import { getMedia } from "@/lib/queries";
+import { MediaService, SubAccountService } from "@/services";
 import React from "react";
 
 type Props = {
@@ -10,7 +10,12 @@ type Props = {
 };
 
 const Page = async ({ params }: Props) => {
-    const data = await getMedia(params.subaccountId);
+    const subAccount = await SubAccountService.findById(params.subaccountId);
+    if (subAccount) {
+        const media = await MediaService.findBySubAccountId(params.subaccountId);
+        (subAccount as any).Media = media;
+    }
+    const data = subAccount;
 
     return (
         <BlurPage>

@@ -3,7 +3,7 @@ import React from "react";
 import FunnelsDataTable from "./data-table";
 import { Plus } from "lucide-react";
 import { columns } from "./columns";
-import { getFunnels } from "@/lib/queries";
+import { FunnelService } from "@/services";
 import FunnelForm from "@/components/forms/funnel-form";
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
 };
 
 const Page = async ({ params }: Props) => {
-    const funnels = await getFunnels(params.subaccountId);
+    const funnels = await FunnelService.findBySubAccountId(params.subaccountId);
     if (!funnels) return null;
 
     return (

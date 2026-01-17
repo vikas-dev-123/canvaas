@@ -5,7 +5,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { columns } from "./columns";
 import SendInvitation from "@/components/forms/send-invitation";
 import { AgencyService } from "@/services";
-import { getAuthUserDetails, getUsersWithAgencySubAccountPermissionsSidebarOptions } from "@/lib/queries";
+import { UserService, PermissionsService, SubAccountService } from "@/services";
 
 type Props = {
     params: {
@@ -15,12 +15,39 @@ type Props = {
 
 const Page = async ({ params }: Props) => {
     const authUser = await currentUser();
-    const teamMembers = await getUsersWithAgencySubAccountPermissionsSidebarOptions(params.agencyId);
-
+    
+    // Get all users in the agency and enrich them with permissions and agency details
+    const agencyUsers = await UserService.findByAgencyId(params.agencyId);
+    
     if (!authUser) return null;
     const agencyDetails = await AgencyService.findById(params.agencyId);
 
     if (!agencyDetails) return;
+    
+    // Build the complex user data structure that the columns expect
+    const teamMembers = await Promise.all(
+        agencyUsers.map(async (user) => {
+            // Get user permissions
+            const permissions = await PermissionsService.findByEmail(user.email);
+            
+            // Enrich permissions with subaccount details
+            const enrichedPermissions = await Promise.all(
+                permissions.map(async (permission: any) => {
+                    if (permission.subAccountId) {
+                        const subAccount = await SubAccountService.findById(permission.subAccountId);
+                        return { ...permission, SubAccount: subAccount };
+                    }
+                    return { ...permission, SubAccount: null };
+                })
+            );
+            
+            return {
+                ...user,
+                Agency: agencyDetails,
+                Permissions: enrichedPermissions,
+            };
+        })
+    );
 
     return (
         <DataTable

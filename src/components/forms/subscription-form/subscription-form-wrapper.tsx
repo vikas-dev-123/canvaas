@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { pricingCards } from "@/lib/constants";
 import { useModal } from "@/providers/modal-provider";
-import { Plan } from "@/lib/interfaces";
+import { Plan } from "@/lib/enums";
 import { StripeElementsOptions } from "@stripe/stripe-js";
 import clsx from "clsx";
 import { Elements } from "@stripe/react-stripe-js";

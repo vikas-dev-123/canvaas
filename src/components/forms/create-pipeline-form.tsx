@@ -3,7 +3,7 @@
 import { saveActivityLogsNotification, upsertPipeline } from "@/lib/queries";
 import { useModal } from "@/providers/modal-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pipeline } from "@/lib/interfaces";
+import { IPipeline } from "@/models/Pipeline";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -24,7 +24,7 @@ import { useToast } from "../ui/use-toast";
 
 /* -------------------- PROPS -------------------- */
 interface CreatePipelineFormProps {
-  defaultData?: Pipeline;
+  defaultData?: IPipeline;
   subAccountId: string;
 }
 

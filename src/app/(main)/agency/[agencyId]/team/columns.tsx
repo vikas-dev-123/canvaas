@@ -1,3 +1,14 @@
+// Define the interface that matches the expected data structure
+interface UsersWithAgencySubAccountPermissionsSidebarOptions {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  email: string;
+  role: Role;
+  Agency: IAgency | null;
+  Permissions: (IPermissions & { SubAccount: ISubAccount | null })[];
+}
+
 "use client";
 import UserDetails from "@/components/forms/user-details";
 import CustomModal from "@/components/global/custom-modal";
@@ -6,11 +17,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
-import { deleteUser, getUser } from "@/lib/queries";
-import { UsersWithAgencySubAccountPermissionsSidebarOptions } from "@/lib/types";
+import { UserService, PermissionsService, AgencyService } from "@/services";
+import { IAgency } from "@/models/Agency";
+import { ISubAccount } from "@/models/SubAccount";
+import { IPermissions } from "@/models/Permissions";
 import { useModal } from "@/providers/modal-provider";
-import { Role } from "@/lib/interfaces";
-import { ColumnDef } from "@tanstack/react-table";
+import { Role } from "@/lib/enums";
+import { ColumnDef, Row } from "@tanstack/react-table";
 import clsx from "clsx";
 import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
 import Image from "next/image";
@@ -69,7 +82,7 @@ export const columns: ColumnDef<UsersWithAgencySubAccountPermissionsSidebarOptio
                         {ownedAccounts?.length ? (
                             ownedAccounts.map((account) => (
                                 <Badge key={account.id} className="bg-slate-600 w-fit whitespace-nowrap">
-                                    Sub Account - {account.SubAccount.name}
+                                    Sub Account - {account.SubAccount?.name || 'N/A'}
                                 </Badge>
                             ))
                         ) : (
@@ -115,7 +128,7 @@ interface CellActionsProps {
 
 const CellActions: React.FC<CellActionsProps> = ({ rowData }) => {
     const { data, setOpen } = useModal();
-    const { toast } = useToast();
+    const { toast } = useToast(); // useToast hook doesn't need parentheses
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     if (!rowData) return;
@@ -140,10 +153,10 @@ const CellActions: React.FC<CellActionsProps> = ({ rowData }) => {
                         onClick={() => {
                             setOpen(
                                 <CustomModal subheading="You can change permissions only when the user has an owned subaccount" title="Edit User Details">
-                                    <UserDetails type="agency" id={rowData?.Agency?.id || null} subAccounts={rowData?.Agency?.SubAccount} />
+                                    <UserDetails type="agency" id={rowData?.Agency?.id || null} subAccounts={[]} />
                                 </CustomModal>,
                                 async () => {
-                                    return { user: await getUser(rowData?.id) };
+                                    return { user: await UserService.findById(rowData?.id) };
                                 }
                             );
                         }}
@@ -172,7 +185,7 @@ const CellActions: React.FC<CellActionsProps> = ({ rowData }) => {
                         className="bg-destructive hover:bg-destructive"
                         onClick={async () => {
                             setLoading(true);
-                            await deleteUser(rowData.id);
+                            await UserService.delete(rowData.id);
                             toast({
                                 title: "Deleted User",
                                 description: "The user has been deleted from this agency they no longer have access to the agency",

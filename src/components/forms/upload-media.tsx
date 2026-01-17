@@ -10,6 +10,7 @@ import FileUpload from "../global/file-upload";
 import { Button } from "../ui/button";
 import { createMedia, saveActivityLogsNotification } from "@/lib/queries";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IMedia } from "@/models/Media";
 
 type Props = {
     subaccountId: string;
@@ -39,7 +40,7 @@ const UploadMediaForm = ({ subaccountId }: Props) => {
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
-            const response = await createMedia(subaccountId, values);
+            const response: IMedia = await createMedia(subaccountId, values);
             await saveActivityLogsNotification({
                 agencyId: undefined,
                 description: `Uploaded a media file | ${response.name}`,

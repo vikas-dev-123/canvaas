@@ -9,7 +9,7 @@ import { Input } from "../ui/input";
 
 import { deleteFunnelsPage, getFunnels, saveActivityLogsNotification, upsertFunnelPage } from "@/lib/queries";
 import { FunnelPageSchema } from "@/lib/types";
-import { FunnelPage } from "@/lib/interfaces";
+import { IFunnelPage } from "@/models/FunnelPage";
 import { CopyPlusIcon, Trash } from "lucide-react";
 import { v4 } from "uuid";
 import Loading from "../global/loading";
@@ -18,7 +18,7 @@ import { useToast } from "../ui/use-toast";
 import { useRouter } from "next/navigation";
 
 interface CreateFunnelPageProps {
-    defaultData?: FunnelPage;
+    defaultData?: IFunnelPage;
     funnelId: string;
     order: number;
     subaccountId: string;
@@ -132,11 +132,13 @@ const CreateFunnelPage: React.FC<CreateFunnelPageProps> = ({ defaultData, funnel
                                     type="button"
                                     onClick={async () => {
                                         const response = await deleteFunnelsPage(defaultData.id);
-                                        await saveActivityLogsNotification({
-                                            agencyId: undefined,
-                                            description: `Deleted a funnel page | ${response?.name}`,
-                                            subAccountId: subaccountId,
-                                        });
+                                        if (response) {
+                                            await saveActivityLogsNotification({
+                                                agencyId: undefined,
+                                                description: `Deleted a funnel page | ${response.name}`,
+                                                subAccountId: subaccountId,
+                                            });
+                                        }
                                         router.refresh();
                                     }}
                                 >
@@ -151,7 +153,8 @@ const CreateFunnelPage: React.FC<CreateFunnelPageProps> = ({ defaultData, funnel
                                     type="button"
                                     onClick={async () => {
                                         const response = await getFunnels(subaccountId);
-                                        const lastFunnelPage = response.find((funnel) => funnel.id === funnelId)?.FunnelPages.length;
+                                        const matchingFunnel = response.find((funnel) => funnel.id === funnelId);
+                                        const lastFunnelPage = matchingFunnel ? (matchingFunnel.FunnelPages ? matchingFunnel.FunnelPages.length : 0) : 0;
 
                                         await upsertFunnelPage(
                                             subaccountId,

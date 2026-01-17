@@ -17,7 +17,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
-import { Lane } from "@/lib/interfaces";
+import { ILane } from "@/models/Lane";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import Loading from "../global/loading";
@@ -33,7 +33,7 @@ import { useToast } from "../ui/use-toast";
 
 /* -------------------- PROPS -------------------- */
 interface CreateLaneFormProps {
-  defaultData?: Lane;
+  defaultData?: ILane;
   pipelineId: string;
 }
 

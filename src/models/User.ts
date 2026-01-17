@@ -81,7 +81,7 @@ const UserSchema = new Schema<IUser>(
 /**
  * Optimized indexes
  */
-UserSchema.index({ email: 1 });
+
 UserSchema.index({ agencyId: 1, role: 1 });
 
 export const User: Model<IUser> =

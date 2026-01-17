@@ -1,7 +1,7 @@
 "use client";
-import { deleteSubAccount, getSubAccountDetails, saveActivityLogsNotification } from "@/lib/queries";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 type Props = {
     subaccountId: string;
@@ -10,20 +10,41 @@ type Props = {
 const DeleteButton = ({ subaccountId }: Props) => {
     const router = useRouter();
 
+    const { toast } = useToast();
+    
+    const handleDelete = async () => {
+        try {
+            // Call API route to delete the subaccount
+            const res = await fetch(`/api/subaccount/${subaccountId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            if (!res.ok) {
+                throw new Error(`Failed to delete subaccount: ${res.statusText}`);
+            }
+            
+            toast({
+                title: "Deleted Sub Account",
+                description: "The subaccount has been deleted successfully",
+            });
+            
+            router.refresh();
+        } catch (error) {
+            console.error("Error deleting subaccount:", error);
+            toast({
+                title: "Error",
+                description: "Failed to delete subaccount",
+                variant: "destructive",
+            });
+        }
+    };
+    
     return (
         <div
-            onClick={async () => {
-                const response = await getSubAccountDetails(subaccountId);
-
-                await saveActivityLogsNotification({
-                    agencyId: undefined,
-                    description: `Delete a subaccount | ${response?.name}`,
-                    subAccountId: subaccountId,
-                });
-
-                await deleteSubAccount(subaccountId);
-                router.refresh();
-            }}
+            onClick={handleDelete}
         >
             Delete Sub Account
         </div>

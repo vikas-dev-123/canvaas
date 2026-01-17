@@ -69,7 +69,7 @@ const SubAccountSidebarOptionSchema = new Schema<ISubAccountSidebarOption>(
 /**
  * Optimized query index
  */
-SubAccountSidebarOptionSchema.index({ subAccountId: 1 });
+
 
 export const SubAccountSidebarOption: Model<ISubAccountSidebarOption> =
   mongoose.models.SubAccountSidebarOption ||

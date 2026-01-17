@@ -86,8 +86,7 @@ const TicketSchema = new Schema<ITicket>(
  * Optimized indexes for Kanban / CRM views
  */
 TicketSchema.index({ laneId: 1, order: 1 });
-TicketSchema.index({ customerId: 1 });
-TicketSchema.index({ assignedUserId: 1 });
+
 
 export const Ticket: Model<ITicket> =
   mongoose.models.Ticket ||

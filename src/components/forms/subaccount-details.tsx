@@ -1,6 +1,7 @@
 "use client";
 
-import { Agency, SubAccount } from "@/lib/interfaces";
+import { IAgency } from "@/models/Agency";
+import { ISubAccount } from "@/models/SubAccount";
 import React, { useEffect } from "react";
 import { useToast } from "../ui/use-toast";
 import { useModal } from "@/providers/modal-provider";
@@ -27,10 +28,6 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import Loading from "../global/loading";
 import { useRouter } from "next/navigation";
-import {
-  saveActivityLogsNotification,
-  upsertSubAccount,
-} from "@/lib/queries";
 import { v4 } from "uuid";
 
 /* -------------------- ZOD SCHEMA -------------------- */
@@ -48,8 +45,8 @@ const formSchema = z.object({
 
 /* -------------------- PROPS -------------------- */
 interface SubAccountDetailsProps {
-  agencyDetails: Agency;
-  details?: Partial<SubAccount>;
+  agencyDetails: IAgency;
+  details?: Partial<ISubAccount>;
   userId: string;
   userName: string;
 }
@@ -83,28 +80,45 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
   /* -------------------- SUBMIT -------------------- */
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const response = await upsertSubAccount({
-        id: details?.id ?? v4(),
-        agencyId: agencyDetails.id,
-        name: values.name,
-        companyEmail: values.companyEmail,
-        companyPhone: values.companyPhone,
-        address: values.address,
-        city: values.city,
-        zipCode: values.zipCode,
-        state: values.state,
-        country: values.country,
-        subAccountLogo: values.subAccountLogo,
-        goal: 5000,
-        connectAccountId: "",
+      let endpoint = '/api/subaccount';
+      let method = 'POST';
+      
+      if (details?.id) {
+        // Update existing subaccount
+        endpoint = `/api/subaccount/${details.id}`;
+        method = 'PUT';
+      }
+      
+      const response = await fetch(endpoint, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: details?.id ?? v4(),
+          agencyId: agencyDetails.id,
+          name: values.name,
+          companyEmail: values.companyEmail,
+          companyPhone: values.companyPhone,
+          address: values.address,
+          city: values.city,
+          zipCode: values.zipCode,
+          state: values.state,
+          country: values.country,
+          subAccountLogo: values.subAccountLogo,
+          goal: 5000,
+          connectAccountId: "",
+          userName: userName,
+          userId: userId
+        }),
       });
-
-      await saveActivityLogsNotification({
-        agencyId: response.agencyId,
-        description: `${userName} | updated sub account | ${response.name}`,
-        subAccountId: response.id,
-      });
-
+      
+      if (!response.ok) {
+        throw new Error(`Failed to ${details?.id ? 'update' : 'create'} subaccount: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
       toast({
         title: "Subaccount details saved",
         description: "Successfully saved your subaccount details.",
@@ -113,6 +127,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       setClose();
       router.refresh();
     } catch (error) {
+      console.error('Error saving subaccount:', error);
       toast({
         variant: "destructive",
         title: "Oops!",

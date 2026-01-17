@@ -12,7 +12,9 @@ import { TicketWithTags } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useModal } from "@/providers/modal-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Contact, Tag, User } from "@/lib/interfaces";
+import { IContact } from "@/models/Contact";
+import { ITag } from "@/models/Tag";
+import { IUser } from "@/models/User";
 import { CheckIcon, ChevronsUpDownIcon, User2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -60,12 +62,12 @@ const TicketForm = ({ getNewTicket, laneId, subaccountId }: Props) => {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [tags, setTags] = useState<Tag[]>([]);
+  const [tags, setTags] = useState<ITag[]>([]);
   const [contact, setContact] = useState("");
   const [search, setSearch] = useState("");
-  const [contactList, setContactList] = useState<Contact[]>([]);
+  const [contactList, setContactList] = useState<IContact[]>([]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const [allTeamMembers, setAllTeamMembers] = useState<User[]>([]);
+  const [allTeamMembers, setAllTeamMembers] = useState<IUser[]>([]);
   const [assignedTo, setAssignedTo] = useState(
     defaultData.ticket?.Assigned?.id || ""
   );

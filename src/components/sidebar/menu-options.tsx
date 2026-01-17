@@ -1,7 +1,10 @@
 "use client";
 
 import useMounted from "@/hooks/useMounted";
-import { Agency, AgencySidebarOption, SubAccount, SubAccountSidebarOption } from "@/lib/interfaces";
+import { IAgency } from "@/models/Agency";
+import { IAgencySidebarOption } from "@/models/AgencySidebarOption";
+import { ISubAccount } from "@/models/SubAccount";
+import { ISubAccountSidebarOption } from "@/models/SubAccountSidebarOption";
 import clsx from "clsx";
 import { ChevronsUpDown, Menu, PlusCircleIcon } from "lucide-react";
 import Image from "next/image";
@@ -28,8 +31,8 @@ import { icons } from "@/lib/constants";
 
 type Props = {
   defaultOpen?: boolean;
-  subAccounts: SubAccount[];
-  sidebarOpt: AgencySidebarOption[] | SubAccountSidebarOption[];
+  subAccounts: ISubAccount[];
+  sidebarOpt: IAgencySidebarOption[] | ISubAccountSidebarOption[];
   sidebarLogo: string;
   details: any;
   user: any;
@@ -174,7 +177,7 @@ const MenuOptions = ({
                               >
                                 <div className="relative w-16">
                                   <Image
-                                    src={sub.subAccountLogo}
+                                    src={sub.subAccountLogo || '/default-logo.png'}
                                     alt="Subaccount Logo"
                                     fill
                                     className="rounded-md object-contain"
@@ -195,7 +198,7 @@ const MenuOptions = ({
                                 >
                                   <div className="relative w-16">
                                     <Image
-                                      src={sub.subAccountLogo}
+                                      src={sub.subAccountLogo || '/vercel.svg'}
                                       alt="Subaccount Logo"
                                       fill
                                       className="rounded-md object-contain"
@@ -229,7 +232,7 @@ const MenuOptions = ({
                             subheading="Switch between agency & subaccounts"
                           >
                             <SubAccountDetails
-                              agencyDetails={user.Agency as Agency}
+                              agencyDetails={user.Agency as IAgency}
                               userId={user.id}
                               userName={user.name}
                             />

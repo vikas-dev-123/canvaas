@@ -2,8 +2,9 @@ import { AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { getAuthUserDetails } from "@/lib/queries";
-import { SubAccount } from "@/lib/interfaces";
+import { AgencyService, SubAccountService, UserService } from "@/services";
+import { ISubAccount } from "@/models/SubAccount";
+import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
 import DeleteButton from "./_components/delete-button";
@@ -16,25 +17,33 @@ type Props = {
 };
 
 const Page = async ({ params }: Props) => {
-    const user = await getAuthUserDetails();
-
+    const authUser = await currentUser();
+    if (!authUser) return;
+    
+    const user = await UserService.findByEmail(authUser.emailAddresses[0].emailAddress);
     if (!user) return;
+    
+    const agency = await AgencyService.findById(params.agencyId);
+    
+    if (!agency) return;
+    
+    const subAccounts = await SubAccountService.findByAgencyId(params.agencyId);
 
     return (
         <AlertDialog>
             <div className="flex flex-col">
-                <CreateSubAccountButton user={user} id={params.agencyId} className="w-[200px] self-end m-6" />
+                <CreateSubAccountButton user={{ ...user, Agency: agency }} id={params.agencyId} className="w-[200px] self-end m-6" />
                 <Command className="rounded-lg bg-transparent">
                     <CommandInput placeholder="Search Account..." />
                     <CommandList>
                         <CommandEmpty>No Results Found.</CommandEmpty>
                         <CommandGroup heading="Sub Accounts">
-                            {!!user.Agency?.SubAccount.length ? (
-                                user.Agency.SubAccount.map((subaccount: SubAccount) => (
+                            {!!subAccounts?.length ? (
+                                subAccounts.map((subaccount: ISubAccount) => (
                                     <CommandItem key={subaccount.id} className="h-32 !bg-background my-2 text-primary border-[1px] border-border p-4 rounded-lg hover:!bg-background cursor-pointer transition-all">
                                         <Link href={`/subaccount/${subaccount.id}`} className="flex gap-4 w-full h-full">
                                             <div className="relative w-32">
-                                                <Image src={subaccount.subAccountLogo} alt="subaccount logo" fill className="rounded-md object-contain bg-muted/50 p-4" />
+                                                <Image src={subaccount.subAccountLogo || '/vercel.svg'} alt="subaccount logo" fill className="rounded-md object-contain bg-muted/50 p-4" />
                                             </div>
                                             <div className="flex flex-col justify-between">
                                                 <div className="flex flex-col">

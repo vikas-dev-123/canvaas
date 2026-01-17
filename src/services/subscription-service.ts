@@ -67,4 +67,21 @@ export class SubscriptionService {
       return false;
     }
   }
+
+  static async findByAgencyId(agencyId: string): Promise<ISubscription | null> {
+    await connectToDatabase();
+    try {
+      const subscription = await Subscription.findOne({ agencyId }).lean();
+      if (subscription) {
+        // Clean up the subscription object for Next.js compatibility
+        const { _id, __v, ...cleanSubscription } = subscription;
+        cleanSubscription.id = cleanSubscription.id ?? _id?.toString();
+        return cleanSubscription as ISubscription;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error finding subscription by agency ID:', error);
+      return null;
+    }
+  }
 }

@@ -2,7 +2,7 @@
 import { CreateFunnelFormSchema } from "@/lib/types";
 import { useModal } from "@/providers/modal-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Funnel } from "@/lib/interfaces";
+import { IFunnel } from "@/models/Funnel";
 import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -19,13 +19,14 @@ import { saveActivityLogsNotification, upsertFunnel } from "@/lib/queries";
 import { useToast } from "../ui/use-toast";
 
 interface CreateFunnelProps {
-    defaultData?: Funnel;
+    defaultData?: IFunnel;
     subAccountId: string;
 }
 
 const FunnelForm: React.FC<CreateFunnelProps> = ({ defaultData, subAccountId }) => {
     const { setClose } = useModal();
     const router = useRouter();
+    const { toast } = useToast();
     const form = useForm<z.infer<typeof CreateFunnelFormSchema>>({
         mode: "onChange",
         resolver: zodResolver(CreateFunnelFormSchema),
@@ -54,19 +55,21 @@ const FunnelForm: React.FC<CreateFunnelProps> = ({ defaultData, subAccountId }) 
         if (!subAccountId) return;
 
         const response = await upsertFunnel(subAccountId, { ...values, liveProducts: defaultData?.liveProducts || "[]" }, defaultData?.id || v4());
-        await saveActivityLogsNotification({
-            agencyId: undefined,
-            description: `Update funnel | ${response.name}`,
-            subAccountId: subAccountId,
-        });
+        if (response) {
+            await saveActivityLogsNotification({
+                agencyId: undefined,
+                description: `Update funnel | ${response.name}`,
+                subAccountId: subAccountId,
+            });
+        }
 
         if (response) {
-            useToast({
+            toast({
                 title: "Success",
                 description: "Saved funnel details",
             });
         } else {
-            useToast({
+            toast({
                 variant: "destructive",
                 title: "Oppse!",
                 description: "Could not save funnel details",
