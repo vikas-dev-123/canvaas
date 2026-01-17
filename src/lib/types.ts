@@ -12,7 +12,7 @@ import { ITicket } from "../models/Ticket";
 import { IUser } from "../models/User";
 
 export type NotificationWithUser =
-    | ({
+    | (INotification & {
           User: {
               id: string;
               name: string;
@@ -23,7 +23,7 @@ export type NotificationWithUser =
               role: Role;
               agencyId: string | null;
           };
-      } & Notification)[]
+      })[]
     | undefined;
 
 // Placeholder type definition for the function that was removed
