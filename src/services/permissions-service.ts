@@ -116,8 +116,8 @@ export class PermissionsService {
   static async update(id: string, permissionData: Partial<IPermissions>): Promise<IPermissions | null> {
     await connectDB();
     try {
-      const updatedPermission = await Permissions.findByIdAndUpdate(
-        id,
+      const updatedPermission = await Permissions.findOneAndUpdate(
+        { id: id },
         { ...permissionData, updatedAt: new Date() },
         { new: true }
       ).lean();
@@ -138,7 +138,7 @@ export class PermissionsService {
   static async delete(id: string): Promise<boolean> {
     await connectDB();
     try {
-      const result = await Permissions.findByIdAndDelete(id);
+      const result = await Permissions.findOneAndDelete({ id: id });
       return !!result;
     } catch (error) {
       console.error('Error deleting permission:', error);

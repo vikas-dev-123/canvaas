@@ -55,8 +55,8 @@ export class MediaService {
   static async update(id: string, mediaData: Partial<IMedia>): Promise<IMedia | null> {
     await connectDB();
     try {
-      const updatedMedia = await Media.findByIdAndUpdate(
-        id,
+      const updatedMedia = await Media.findOneAndUpdate(
+        { id: id },
         { ...mediaData, updatedAt: new Date() },
         { new: true }
       ).lean();
@@ -77,7 +77,7 @@ export class MediaService {
   static async delete(id: string): Promise<boolean> {
     await connectDB();
     try {
-      const result = await Media.findByIdAndDelete(id);
+      const result = await Media.findOneAndDelete({ id: id });
       return !!result;
     } catch (error) {
       console.error('Error deleting media:', error);

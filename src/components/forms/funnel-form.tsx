@@ -54,25 +54,38 @@ const FunnelForm: React.FC<CreateFunnelProps> = ({ defaultData, subAccountId }) 
     const onSubmit = async (values: z.infer<typeof CreateFunnelFormSchema>) => {
         if (!subAccountId) return;
 
-        const response = await upsertFunnel(subAccountId, { ...values, liveProducts: defaultData?.liveProducts || "[]" }, defaultData?.id || v4());
-        if (response) {
-            await saveActivityLogsNotification({
-                agencyId: undefined,
-                description: `Update funnel | ${response.name}`,
-                subAccountId: subAccountId,
-            });
-        }
-
-        if (response) {
-            toast({
-                title: "Success",
-                description: "Saved funnel details",
-            });
-        } else {
+        try {
+            const response = await upsertFunnel(subAccountId, { ...values, liveProducts: defaultData?.liveProducts || "[]" }, defaultData?.id || v4());
+            
+            if (response) {
+                try {
+                    await saveActivityLogsNotification({
+                        agencyId: undefined,
+                        description: `Update funnel | ${response.name}`,
+                        subAccountId: subAccountId,
+                    });
+                } catch (logError) {
+                    console.error("Error saving activity log:", logError);
+                    // Don't let logging errors prevent the success message
+                }
+                
+                toast({
+                    title: "Success",
+                    description: "Saved funnel details",
+                });
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Oops!",
+                    description: "Could not save funnel details",
+                });
+            }
+        } catch (error) {
+            console.error("Error saving funnel:", error);
             toast({
                 variant: "destructive",
-                title: "Oppse!",
-                description: "Could not save funnel details",
+                title: "Error",
+                description: "Failed to save funnel details: " + (error instanceof Error ? error.message : "Unknown error"),
             });
         }
 

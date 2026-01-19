@@ -751,24 +751,30 @@ export const getTicketsWithTags = async (pipelineId: string) => {
 };
 
 export const upsertFunnel = async (subaccountId: string, funnel: any, funnelId: string) => {
-  let response;
-  
-  if (funnelId) {
-    // Update existing funnel
-    response = await FunnelService.update(funnelId, {
-      ...funnel,
-      subAccountId: subaccountId,
-    });
-  } else {
-    // Create new funnel
-    response = await FunnelService.create({
-      ...funnel,
-      _id: funnelId,
-      subAccountId: subaccountId
-    });
-  }
+  try {
+    let response;
+    
+    if (funnelId) {
+      // Update existing funnel
+      response = await FunnelService.update(funnelId, {
+        ...funnel,
+        subAccountId: subaccountId,
+      });
+    } else {
+      // Create new funnel
+      response = await FunnelService.create({
+        ...funnel,
+        id: funnelId,
+        subAccountId: subaccountId,
+        published: funnel.published ?? false  // Ensure published field is set
+      });
+    }
 
-  return response;
+    return response;
+  } catch (error) {
+    console.error("Error in upsertFunnel:", error);
+    throw error;  // Re-throw to let the caller handle it
+  }
 };
 
 export const upsertLane = async (lane: any) => {

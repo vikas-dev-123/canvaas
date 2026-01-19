@@ -5,7 +5,7 @@ export class FunnelService {
   static async findById(id: string): Promise<IFunnel | null> {
     await connectToDatabase();
     try {
-      const funnel = await Funnel.findById(id).lean();
+      const funnel = await Funnel.findOne({ id: id }).lean();
       if (funnel) {
         // Clean up the funnel object for Next.js compatibility
         const { _id, __v, ...cleanFunnel } = funnel;
@@ -55,8 +55,8 @@ export class FunnelService {
   static async update(id: string, funnelData: Partial<IFunnel>): Promise<IFunnel | null> {
     await connectToDatabase();
     try {
-      const updatedFunnel = await Funnel.findByIdAndUpdate(
-        id,
+      const updatedFunnel = await Funnel.findOneAndUpdate(
+        { id: id },
         { ...funnelData, updatedAt: new Date() },
         { new: true }
       ).lean();
@@ -77,7 +77,7 @@ export class FunnelService {
   static async delete(id: string): Promise<boolean> {
     await connectToDatabase();
     try {
-      const result = await Funnel.findByIdAndDelete(id);
+      const result = await Funnel.findOneAndDelete({ id: id });
       return !!result;
     } catch (error) {
       console.error('Error deleting funnel:', error);

@@ -17,6 +17,12 @@ export interface IPermissions {
 
 const PermissionsSchema = new Schema<IPermissions>(
   {
+    id: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
     email: {
       type: String,
       ref: "User",

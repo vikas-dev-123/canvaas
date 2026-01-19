@@ -1,6 +1,35 @@
 import { NextResponse } from "next/server";
 import { SubAccountService, NotificationService } from "@/services";
 
+// GET - Fetch subaccount by ID
+export async function GET(
+  req: Request,
+  { params }: { params: { subaccountId: string } }
+) {
+  try {
+    const subaccount = await SubAccountService.findById(params.subaccountId);
+    
+    if (!subaccount) {
+      return NextResponse.json(
+        { error: "Subaccount not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, data: subaccount },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error fetching subaccount:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete subaccount by ID
 export async function DELETE(
   req: Request,
   { params }: { params: { subaccountId: string } }
@@ -40,6 +69,62 @@ export async function DELETE(
     );
   } catch (error) {
     console.error("Error deleting subaccount:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT - Update subaccount by ID
+export async function PUT(
+  req: Request,
+  { params }: { params: { subaccountId: string } }
+) {
+  try {
+    const body = await req.json();
+    const {
+      name,
+      companyEmail,
+      companyPhone,
+      address,
+      city,
+      zipCode,
+      state,
+      country,
+      subAccountLogo,
+      userName,
+      userId
+    } = body;
+
+    // Update existing subaccount
+    const response = await SubAccountService.update(params.subaccountId, {
+      name: name,
+      companyEmail: companyEmail,
+      companyPhone: companyPhone,
+      address: address,
+      city: city,
+      zipCode: zipCode,
+      state: state,
+      country: country,
+      subAccountLogo: subAccountLogo,
+    } as any);
+
+    if (response) {
+      await NotificationService.create({
+        notification: `${userName} | updated sub account | ${response.name}`,
+        agencyId: response.agencyId,
+        subAccountId: response.id,
+        userId: userId
+      } as any);
+    }
+
+    return NextResponse.json(
+      { success: true, data: response },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error updating subaccount:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

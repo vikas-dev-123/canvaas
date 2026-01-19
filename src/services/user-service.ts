@@ -56,8 +56,8 @@ export class UserService {
   static async update(id: string, userData: Partial<Omit<IUser, '_id' | 'createdAt' | 'updatedAt'>>): Promise<IUser | null> {
     await connectDB();
     try {
-      const updatedUser = await User.findByIdAndUpdate(
-        id,
+      const updatedUser = await User.findOneAndUpdate(
+        { id: id },
         { ...userData, updatedAt: new Date() },
         { new: true }
       ).lean();
@@ -78,7 +78,7 @@ export class UserService {
   static async delete(id: string): Promise<boolean> {
     await connectDB();
     try {
-      const result = await User.findByIdAndDelete(id);
+      const result = await User.findOneAndDelete({ id: id });
       return !!result;
     } catch (error) {
       console.error('Error deleting user:', error);

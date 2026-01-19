@@ -14,6 +14,12 @@ export interface IMedia {
 
 const MediaSchema = new Schema<IMedia>(
   {
+    id: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
     type: {
       type: String,
       trim: true,

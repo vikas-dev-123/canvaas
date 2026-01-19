@@ -1,124 +1,91 @@
-import { ChildrenProps } from "@/@types";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
 import InfoBar from "@/components/global/infobar";
 import Sidebar from "@/components/sidebar";
-import Unauthorized from "@/components/unauthorized";
-import { verifyAndAcceptInvitation } from "@/lib/queries";
-import { currentUser, clerkClient } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import React from "react";
-import { UserService, PermissionsService, NotificationService, AgencyService, SubAccountService } from "@/services";
+import Loading from "@/components/global/loading";
+import { UserService, NotificationService } from "@/services";
+import { useUser } from "@clerk/nextjs";
 
-type Props = {
-    params: {
-        subaccountId: string;
+interface LayoutProps {
+  children: React.ReactNode;
+  params: {
+    subaccountId: string;
+  };
+}
+
+const SubAccountLayout = ({ children, params }: LayoutProps) => {
+  const { user } = useUser();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [userRole, setUserRole] = useState<string>("SUBACCOUNT_USER");
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch notifications
+        const notificationsResponse = await fetch(`/api/notifications/subaccount/${params.subaccountId}`);
+        if (notificationsResponse.ok) {
+          const notificationsData = await notificationsResponse.json();
+          setNotifications(notificationsData.data || []);
+        }
+        
+        // Fetch user role (this would typically come from auth context)
+        // For now, we'll default to SUBACCOUNT_USER
+        setUserRole("SUBACCOUNT_USER");
+        
+      } catch (error) {
+        console.error("Error fetching layout data:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load dashboard data",
+        });
+      } finally {
+        setLoading(false);
+      }
     };
-} & ChildrenProps;
 
-const Layout = async ({ children, params }: Props) => {
-    const agencyId = await verifyAndAcceptInvitation();
-    if (!agencyId) return <Unauthorized />;
+    fetchData();
+  }, [params.subaccountId]);
 
-    const user = await currentUser();
-    if (!user) redirect("/");
-
-    let notifications: any = [];
-
-    // Get user details to check role
-    const userDetails = await UserService.findByEmail(user.emailAddresses[0].emailAddress);
-    if (!userDetails || !userDetails.role) {
-        return <Unauthorized />;
-    }
-    
-    // Update Clerk metadata if needed to ensure consistency
-    if (user.privateMetadata.role !== userDetails.role) {
-        try {
-            const clerk = await clerkClient();
-            await clerk.users.updateUserMetadata(user.id, {
-                privateMetadata: {
-                    role: userDetails.role,
-                },
-            });
-        } catch (error) {
-            console.error('Error updating user metadata in Clerk:', error);
-        }
-    }
-    
-    // Use the role from the database as the authoritative source
-    const userRole = userDetails.role;
-    
-    if (!userRole) {
-        return <Unauthorized />;
-    } else {
-        // Use the existing userDetails from earlier
-        // Get agency ID from user details if not available
-        const agencyIdToUse = agencyId || userDetails.agencyId;
-        
-        if (!agencyIdToUse) {
-            return <Unauthorized />;
-        }
-        
-        // Get user permissions
-        const permissions = await PermissionsService.findByEmail(user.emailAddresses[0].emailAddress);
-        
-        // Check if user has access to the subaccount
-        // AGENCY_OWNER and AGENCY_ADMIN should have access to all subaccounts in their agency
-        let hasPermission = false;
-        
-        if (userRole === "AGENCY_OWNER" || userRole === "AGENCY_ADMIN") {
-            // Check if the subaccount belongs to the user's agency
-            const subAccount = await SubAccountService.findById(params.subaccountId);
-            if (subAccount && subAccount.agencyId === agencyIdToUse) {
-                hasPermission = true;
-            }
-        } else {
-            // For other roles, check specific permissions
-            hasPermission = permissions.some((p) => p.access && p.subAccountId === params.subaccountId);
-        }
-
-        if (!hasPermission) {
-            return <Unauthorized />;
-        }
-        
-        // Get notifications
-        const notificationsRaw = await NotificationService.findByAgencyId(agencyIdToUse);
-        
-        // Populate user data for each notification
-        const allNotifications = [];
-        if (notificationsRaw) {
-            for (const notification of notificationsRaw) {
-                try {
-                    const user = await UserService.findById(notification.userId);
-                    (notification as any).User = user;
-                } catch (error) {
-                    console.error('Error fetching user for notification:', error);
-                    // Set a default user object if user is not found
-                    (notification as any).User = {
-                        name: 'System',
-                        avatarUrl: '',
-                    };
-                }
-                allNotifications.push(notification);
-            }
-        }
-
-        if (userRole === "AGENCY_ADMIN" || userRole === "AGENCY_OWNER") {
-            notifications = allNotifications;
-        } else {
-            const filteredNoti = allNotifications?.filter((item) => item.subAccountId === params.subaccountId);
-
-            if (filteredNoti) notifications = filteredNoti;
-        }
-    }
-
+  if (loading) {
     return (
-        <div className="h-screen overflow-hidden">
-            <Sidebar id={params.subaccountId} type="subaccount" />
-            <div className="md:pl-[300px]">
-                <InfoBar notifications={notifications} role={userRole as string} subAccountId={params.subaccountId as string} />
-                <div className="relative">{children}</div>
-            </div>
-        </div>
+      <div className="h-screen flex items-center justify-center">
+        <Loading />
+      </div>
     );
+  }
+
+  if (!user?.emailAddresses?.[0]?.emailAddress) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div>User not authenticated</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen overflow-hidden">
+      <Sidebar 
+        id={params.subaccountId} 
+        type="subaccount" 
+        userEmail={user.emailAddresses[0].emailAddress}
+      />
+      <div className="md:pl-[300px]">
+        <InfoBar 
+          notifications={notifications} 
+          role={userRole} 
+          subAccountId={params.subaccountId} 
+        />
+        <div className="relative h-full overflow-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 };
 
-export default Layout;
+export default SubAccountLayout;

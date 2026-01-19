@@ -17,6 +17,12 @@ export interface IFunnelPage {
 
 const FunnelPageSchema = new Schema<IFunnelPage>(
   {
+    id: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
     name: {
       type: String,
       required: true,

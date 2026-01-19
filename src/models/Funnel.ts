@@ -17,6 +17,12 @@ export interface IFunnel {
 
 const FunnelSchema = new Schema<IFunnel>(
   {
+    id: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
     name: {
       type: String,
       required: true,
