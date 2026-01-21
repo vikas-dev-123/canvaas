@@ -59,7 +59,7 @@ const Page = async ({ params }: Props) => {
                     planExists={agencySubscription?.Subscription?.active === true}
                     prices={prices.data}
                     customerId={agencySubscription?.customerId || ""}
-                    amt={agencySubscription?.Subscription?.active === true ? currentPlanDetails?.price || "$0" : "$0"}
+                    amt={agencySubscription?.Subscription?.active === true ? currentPlanDetails?.price || "₹0" : "₹0"}
                     buttonCta={agencySubscription?.Subscription?.active === true ? "Change Plan" : "Get  Started"}
                     highlightDescription="Want to modify your plan? You can do this here. If you have
                     further question contact support@plura-app.com"
@@ -79,8 +79,8 @@ const Page = async ({ params }: Props) => {
                             //@ts-ignore
                             addOn.default_price?.unit_amount
                                 ? //@ts-ignore
-                                  `$${addOn.default_price.unit_amount / 100}`
-                                : "$0"
+                                  `₹${addOn.default_price.unit_amount / 100}`
+                                : "₹0"
                         }
                         buttonCta="Subscribe"
                         description="Dedicated support line & teams channel for support"
