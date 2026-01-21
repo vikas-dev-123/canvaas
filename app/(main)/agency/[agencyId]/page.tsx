@@ -1,62 +1,27 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { getAgencyDetails } from '@/lib/queries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { DollarSign, Users, TrendingUp, Calendar, Settings, Plus, Eye } from "lucide-react";
-
-interface AgencyData {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  companyEmail: string;
-  companyPhone: string;
-  whiteLabel: boolean;
-  address: string;
-  city: string;
-  zipCode: string;
-  state: string;
-  country: string;
-  goal: number;
-  SubAccount: any[];
-  SideBarOption: any[];
-}
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-const Page = ({ params }: { params: { agencyId: string } }) => {
-  const [agencyData, setAgencyData] = useState<AgencyData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+const Page = async ({ params }: { params: { agencyId: string } }) => {
+  const agencyData = await getAgencyDetails(params.agencyId);
+  
+  if (!agencyData) {
+    notFound();
+  }
 
-  // Mock data - replace with actual API call
-  const mockAgencyData: AgencyData = {
-    id: params.agencyId,
-    name: "Digital Marketing Pro",
-    createdAt: "2024-01-15T10:30:00Z",
-    updatedAt: "2024-01-20T14:45:00Z",
-    companyEmail: "hello@digitalmarketingpro.com",
-    companyPhone: "+1 (555) 123-4567",
-    whiteLabel: true,
-    address: "123 Business Ave",
-    city: "San Francisco",
-    zipCode: "94105",
-    state: "CA",
-    country: "USA",
-    goal: 50000,
-    SubAccount: [
-      { id: "1", name: "Tech Startup A", createdAt: "2024-01-10" },
-      { id: "2", name: "E-commerce Store B", createdAt: "2024-01-12" },
-      { id: "3", name: "Local Business C", createdAt: "2024-01-18" }
-    ],
-    SideBarOption: []
-  };
-
+  // Calculate statistics
+  const totalSubAccounts = agencyData.SubAccount.length;
+  const activeSubAccounts = agencyData.SubAccount.filter(sa => sa.id).length; // Assuming all are active for now
+  
+  // Mock data for charts (in a real app, this would come from analytics)
   const revenueData = [
     { name: 'Jan', revenue: 4000 },
     { name: 'Feb', revenue: 3000 },
@@ -67,37 +32,10 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
   ];
 
   const subAccountDistribution = [
-    { name: 'Active', value: 3 },
-    { name: 'Inactive', value: 1 },
-    { name: 'Pending', value: 2 },
+    { name: 'Active', value: activeSubAccounts },
+    { name: 'Inactive', value: 0 },
+    { name: 'Pending', value: 0 },
   ];
-
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setAgencyData(mockAgencyData);
-      setLoading(false);
-    }, 1000);
-  }, [params.agencyId]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (!agencyData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Agency not found</h2>
-          <p className="text-gray-500 mt-2">The requested agency could not be found.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 space-y-6">
@@ -108,14 +46,18 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
           <p className="text-gray-500 mt-1">Agency Dashboard</p>
         </div>
         <div className="flex space-x-3">
-          <Button variant="outline">
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Button>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Sub-Account
-          </Button>
+          <Link href={`/agency/${params.agencyId}/settings`}>
+            <Button variant="outline">
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </Button>
+          </Link>
+          <Link href={`/agency/${params.agencyId}/all-subaccounts`}>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Sub-Account
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -127,8 +69,8 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$24,567</div>
-            <p className="text-xs text-muted-foreground">+12.5% from last month</p>
+            <div className="text-2xl font-bold">$0</div>
+            <p className="text-xs text-muted-foreground">No data yet</p>
           </CardContent>
         </Card>
 
@@ -138,8 +80,8 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{agencyData.SubAccount.length}</div>
-            <p className="text-xs text-muted-foreground">3 active this month</p>
+            <div className="text-2xl font-bold">{totalSubAccounts}</div>
+            <p className="text-xs text-muted-foreground">{activeSubAccounts} active</p>
           </CardContent>
         </Card>
 
@@ -149,8 +91,8 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">49%</div>
-            <p className="text-xs text-muted-foreground">$24,567 of ${agencyData.goal}</p>
+            <div className="text-2xl font-bold">0%</div>
+            <p className="text-xs text-muted-foreground">$0 of ${agencyData.goal}</p>
           </CardContent>
         </Card>
 
@@ -167,7 +109,7 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
       </div>
 
       {/* Tabs Section */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="subaccounts">Sub-Accounts</TabsTrigger>
@@ -203,19 +145,25 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
                 <CardDescription>Frequently used actions</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button className="w-full justify-start" variant="outline">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create New Sub-Account
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Users className="mr-2 h-4 w-4" />
-                  Invite Team Member
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Agency Settings
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Link href={`/agency/${params.agencyId}/all-subaccounts`}>
+                  <Button className="w-full justify-start" variant="outline">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create New Sub-Account
+                  </Button>
+                </Link>
+                <Link href={`/agency/${params.agencyId}/team`}>
+                  <Button className="w-full justify-start" variant="outline">
+                    <Users className="mr-2 h-4 w-4" />
+                    Invite Team Member
+                  </Button>
+                </Link>
+                <Link href={`/agency/${params.agencyId}/settings`}>
+                  <Button className="w-full justify-start" variant="outline">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Agency Settings
+                  </Button>
+                </Link>
+                <Button className="w-full justify-start" variant="outline" disabled>
                   <Eye className="mr-2 h-4 w-4" />
                   View Public Profile
                 </Button>
@@ -227,10 +175,12 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
         <TabsContent value="subaccounts" className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-semibold">Sub-Accounts</h3>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Sub-Account
-            </Button>
+            <Link href={`/agency/${params.agencyId}/all-subaccounts`}>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Sub-Account
+              </Button>
+            </Link>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -246,14 +196,16 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Last activity</span>
-                    <span className="text-sm font-medium">2 days ago</span>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm text-muted-foreground">Status</span>
+                    <Badge variant="default">Active</Badge>
                   </div>
-                  <Button className="w-full mt-4" variant="outline">
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Details
-                  </Button>
+                  <Link href={`/subaccount/${subAccount.id}`}>
+                    <Button className="w-full" variant="outline">
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Dashboard
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ))}
@@ -296,19 +248,19 @@ const Page = ({ params }: { params: { agencyId: string } }) => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span>Client Retention</span>
-                  <Badge variant="default">92%</Badge>
+                  <Badge variant="default">0%</Badge>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Avg. Project Value</span>
-                  <span className="font-medium">$8,450</span>
+                  <span className="font-medium">$0</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Response Time</span>
-                  <span className="font-medium">2.3 hours</span>
+                  <span className="font-medium">-</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Satisfaction Score</span>
-                  <Badge variant="default">4.8/5</Badge>
+                  <Badge variant="default">0/5</Badge>
                 </div>
               </CardContent>
             </Card>

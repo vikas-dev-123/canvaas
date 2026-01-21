@@ -7,12 +7,15 @@ Plura is a comprehensive SaaS platform built with modern web technologies that e
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
+- [Recent Updates](#recent-updates)
 - [Installation & Setup](#installation--setup)
 - [Environment Variables](#environment-variables)
 - [Database Schema](#database-schema)
 - [Key Features Explained](#key-features-explained)
 - [Development](#development)
 - [Deployment](#deployment)
+- [API Documentation](#api-documentation)
+- [Troubleshooting](#troubleshooting)
 
 ## ✨ Features
 
@@ -77,7 +80,7 @@ Plura is a comprehensive SaaS platform built with modern web technologies that e
 - **API**: Next.js API Routes
 
 ### Development Tools
-- **Package Manager**: Bun (with npm support)
+- **Package Manager**: npm
 - **Language**: TypeScript
 - **Linting**: ESLint
 - **CSS Processing**: PostCSS
@@ -87,11 +90,14 @@ Plura is a comprehensive SaaS platform built with modern web technologies that e
 ## 📁 Project Structure
 
 ```
-webprodigies-plura/
+canvaas/
 ├── app/                          # Next.js app directory
 │   ├── (main)/                   # Main authenticated routes
 │   │   ├── agency/               # Agency management pages
+│   │   │   ├── [agencyId]/       # Individual agency dashboards
+│   │   │   └── all-subaccounts/  # Sub-account management
 │   │   └── subaccount/           # Sub-account management pages
+│   │       └── [subaccountId]/   # Individual sub-account dashboards
 │   ├── [domain]/                 # Dynamic domain routing for funnels
 │   ├── api/                      # API routes
 │   │   ├── stripe/               # Stripe webhook handlers
@@ -127,10 +133,44 @@ webprodigies-plura/
 └── tsconfig.json                 # TypeScript configuration
 ```
 
+## 🔄 Recent Updates
+
+### Dashboard Enhancements (Latest)
+**Agency Dashboard (`app/(main)/agency/[agencyId]/page.tsx`)**
+- Converted to server-side rendering for better performance
+- Integrated with `getAgencyDetails` for real database data
+- Dynamic sub-account listing from database
+- Proper navigation links to actual application features
+- Real-time statistics calculation from database records
+
+**Sub-Account Dashboard (`app/(main)/subaccount/[subaccountId]/page.tsx`)**
+- Server-side rendering implementation
+- Parallel data fetching using `Promise.all()` for multiple data types
+- Integration with:
+  - `getSubAccountDetails` for account information
+  - `getFunnels` for sales funnels
+  - `getMedia` for media assets
+  - `getContact` for customer contacts
+- Conditional rendering for empty states
+- Real navigation to actual application pages
+
+### Database Query Improvements
+Added new query functions in `lib/queries.ts`:
+- `getSubAccountDashboardData` - Comprehensive sub-account data fetching
+- Enhanced existing queries with better error handling
+- Optimized data fetching patterns
+
+### Key Improvements Made:
+✅ **Real Database Integration**: Pages now fetch actual data instead of mock data
+✅ **Performance Optimization**: Server-side rendering with parallel data fetching
+✅ **Better User Experience**: Proper loading states, error handling, and empty states
+✅ **Enhanced Navigation**: Real links to application features
+✅ **Type Safety**: Strong TypeScript typing throughout
+
 ## 🚀 Installation & Setup
 
 ### Prerequisites
-- Node.js 18+ (or Bun runtime)
+- Node.js 18+
 - MySQL database
 - Stripe account (for payment processing)
 - Clerk account (for authentication)
@@ -139,67 +179,68 @@ webprodigies-plura/
 ### Step 1: Clone the Repository
 ```bash
 git clone <repository-url>
-cd webprodigies-plura
+cd canvaas
 ```
 
 ### Step 2: Install Dependencies
 ```bash
-# Using npm
 npm install
-
-# Or using Bun
-bun install
 ```
 
 ### Step 3: Set Up Environment Variables
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory:
 
 ```bash
-# Database
-DATABASE_URL="mysql://user:password@localhost:3306/plura"
+# Database Configuration
+DATABASE_URL="mysql://username:password@host:port/database_name"
+LOCAL_DATABASE_URL="mysql://root:@localhost:3306/plura_dev?ssl-mode=DISABLED"
 
 # Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_publishable_key
-CLERK_SECRET_KEY=your_secret_key
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/agency/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/agency/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 
-# Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_key
-STRIPE_SECRET_KEY=your_stripe_secret
-STRIPE_WEBHOOK_SECRET=your_webhook_secret
-NEXT_PUBLIC_STRIPE_CLIENT_ID=your_client_id
+# Stripe Payment Processing
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+NEXT_PUBLIC_STRIPE_CLIENT_ID=your_stripe_client_id
 
-# UploadThing
-UPLOADTHING_SECRET=your_uploadthing_secret
-UPLOADTHING_APP_ID=your_uploadthing_app_id
+# UploadThing File Storage
+UPLOADTHING_TOKEN=your_uploadthing_token
 
-# Server URL (for webhooks and redirects)
+# Application URLs
+NEXT_PUBLIC_URL=http://localhost:3000
 NEXT_PUBLIC_DOMAIN=localhost:3000
+NEXT_PUBLIC_SCHEME=http://
+
+# Platform Configuration
+NEXT_PUBLIC_PLATFORM_SUBSCRIPTION_PERCENT=1
+NEXT_PUBLIC_PLATFORM_ONETIME_FEE=2
+NEXT_PUBLIC_PLATFORM_AGENY_PERCENT=1
 ```
 
 ### Step 4: Set Up Database
 ```bash
-# Install Prisma globally (optional)
-npm install -g prisma
-
 # Generate Prisma Client
 npx prisma generate
-
-# Run migrations to set up database schema
+# push to db 
+npx db push
+# the studio of database tables
+npx prisma studio  #important run in the other terminal
+# Run database migrations
 npx prisma migrate dev --name init
 
-# (Optional) Seed database with initial data
+# Optional: Seed database with sample data
 npx prisma db seed
 ```
 
 ### Step 5: Run Development Server
 ```bash
 npm run dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -208,15 +249,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
-| `DATABASE_URL` | MySQL database connection string | ✅ |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk public authentication key | ✅ |
-| `CLERK_SECRET_KEY` | Clerk secret authentication key | ✅ |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe public key for payments | ✅ |
-| `STRIPE_SECRET_KEY` | Stripe secret key | ✅ |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | ✅ |
-| `UPLOADTHING_SECRET` | UploadThing API secret | ✅ |
-| `UPLOADTHING_APP_ID` | UploadThing application ID | ✅ |
-| `NEXT_PUBLIC_DOMAIN` | Your application domain | ✅ |
+| `DATABASE_URL` | Production MySQL database connection | ✅ |
+| `LOCAL_DATABASE_URL` | Local development database connection | ✅ |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk frontend authentication key | ✅ |
+| `CLERK_SECRET_KEY` | Clerk backend authentication key | ✅ |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe frontend payment key | ✅ |
+| `STRIPE_SECRET_KEY` | Stripe backend payment key | ✅ |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook verification | ✅ |
+| `UPLOADTHING_TOKEN` | UploadThing file storage | ✅ |
+| `NEXT_PUBLIC_URL` | Application base URL | ✅ |
+| `NEXT_PUBLIC_DOMAIN` | Domain for routing | ✅ |
 
 ## 📊 Database Schema
 
@@ -225,7 +267,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 **User**
 - Multi-role support (Agency Owner, Admin, Sub-account User/Guest)
 - Email-based authentication with Clerk
-- Linked to agencies
+- Linked to agencies and sub-accounts
 
 **Agency**
 - Parent organization entity
@@ -336,6 +378,7 @@ npm run lint
 npx prisma migrate dev --name migration_name  # Create new migration
 npx prisma studio                             # Open Prisma Studio (GUI)
 npx prisma db push                            # Push schema to database
+npx prisma generate                           # Generate Prisma client
 ```
 
 ### Project Conventions
@@ -344,6 +387,7 @@ npx prisma db push                            # Push schema to database
 - **Components**: Keep components small and focused
 - **Types**: Define types in `@types` or component files
 - **Database**: Use Prisma for all database operations
+- **Routing**: Follow Next.js App Router conventions
 
 ### Adding New Features
 1. **Update Database Schema**: Modify `prisma/schema.prisma`
@@ -352,26 +396,56 @@ npx prisma db push                            # Push schema to database
 4. **Create Forms**: Add form components in `components/forms/`
 5. **Create API Routes**: Add endpoints in `app/api/`
 6. **Update Types**: Add TypeScript types in `@types/`
+7. **Add Queries**: Create database queries in `lib/queries.ts`
 
-## 🔌 API Routes
+## 🔌 API Documentation
 
 ### Stripe Integration
-- `POST /api/stripe/...` - Webhook handlers for Stripe events
-- `POST /api/stripe/...` - Create subscription endpoints
+```
+POST /api/stripe/create-checkout-session
+POST /api/stripe/create-customer
+POST /api/stripe/create-subscription
+POST /api/stripe/webhook
+```
 
 ### File Upload
-- `POST /api/uploadthing` - UploadThing integration for file uploads
+```
+POST /api/uploadthing/core
+POST /api/uploadthing/route
+```
+
+### Custom Endpoints
+```
+GET /api/domain/[subDomainName]  # Get funnel by domain
+GET /api/funnel/[funnelId]/page/[pathName]  # Get specific funnel page
+```
 
 ## 🌐 Deployment
 
 ### Vercel (Recommended)
 ```bash
-# Connect your GitHub repository to Vercel
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy to Vercel
+vercel
+
 # Set environment variables in Vercel dashboard
-# Auto-deploys on push to main branch
 ```
 
-### Self-Hosted (VPS/Docker)
+### Docker Deployment
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+### Self-Hosted (VPS)
 1. Build the application: `npm run build`
 2. Set environment variables on your server
 3. Ensure MySQL database is accessible
@@ -390,6 +464,46 @@ npx prisma db push                            # Push schema to database
 - [ ] SSL certificate installed
 - [ ] CDN configured for static assets
 
+## 🛠 Troubleshooting
+
+### Common Issues
+
+**Database Connection Errors**
+```bash
+# Check database connection
+npx prisma studio
+
+# Reset database (development only)
+npx prisma migrate reset
+```
+
+**Authentication Issues**
+- Verify Clerk environment variables
+- Check redirect URLs in Clerk dashboard
+- Clear browser cookies and localStorage
+
+**Build Failures**
+```bash
+# Clear build cache
+rm -rf .next
+npm run build
+
+# Check TypeScript errors
+npx tsc --noEmit
+```
+
+**Stripe Webhook Issues**
+- Verify webhook signature in Stripe dashboard
+- Check webhook URL is publicly accessible
+- Test with Stripe CLI: `stripe listen --forward-to localhost:3000/api/stripe/webhook`
+
+### Debugging Tips
+1. Enable detailed logging in development
+2. Use Prisma Studio to inspect database data
+3. Check browser console for frontend errors
+4. Review server logs for backend issues
+5. Use React DevTools for component debugging
+
 ## 📚 Additional Resources
 
 - [Next.js Documentation](https://nextjs.org/docs)
@@ -401,10 +515,11 @@ npx prisma db push                            # Push schema to database
 
 ## 🤝 Contributing
 
-1. Create a feature branch: `git checkout -b feature/your-feature`
-2. Commit changes: `git commit -am 'Add feature'`
-3. Push to branch: `git push origin feature/your-feature`
-4. Submit a pull request
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit changes: `git commit -am 'Add feature'`
+4. Push to branch: `git push origin feature/your-feature`
+5. Submit a pull request
 
 ## 📄 License
 
@@ -419,5 +534,6 @@ For support and questions:
 
 ---
 
-**Last Updated**: December 2024
-**Version**: 0.1.0
+**Last Updated**: January 2026
+**Version**: 1.0.0
+**Status**: Production Ready

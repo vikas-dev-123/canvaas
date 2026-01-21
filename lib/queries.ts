@@ -499,6 +499,107 @@ export const getSubAccountDetails = async (subaccountId: string) => {
     return response;
 };
 
+// Simplified query functions for dashboard pages
+export const getSubAccountDashboardData = async (subaccountId: string) => {
+    const [subAccount, funnels, media, contacts, tickets] = await Promise.all([
+        db.subAccount.findUnique({
+            where: { id: subaccountId },
+            include: {
+                Agency: true,
+            },
+        }),
+        db.funnel.findMany({
+            where: { subAccountId: subaccountId },
+            include: {
+                FunnelPages: true,
+            },
+        }),
+        db.media.findMany({
+            where: { subAccountId: subaccountId },
+        }),
+        db.contact.findMany({
+            where: { subAccountId: subaccountId },
+        }),
+        db.ticket.findMany({
+            where: {
+                Lane: {
+                    Pipeline: {
+                        subAccountId: subaccountId,
+                    },
+                },
+            },
+            include: {
+                Assigned: true,
+                Customer: true,
+            },
+        }),
+    ]);
+
+    return {
+        subAccount,
+        funnels,
+        media,
+        contacts,
+        tickets,
+    };
+};
+
+export const getAgencyWithAllData = async (agencyId: string) => {
+    const response = await db.agency.findUnique({
+        where: { id: agencyId },
+        include: {
+            SubAccount: {
+                include: {
+                    Funnels: {
+                        include: {
+                            FunnelPages: true,
+                        },
+                    },
+                    Media: true,
+                    Contact: true,
+                    Ticket: {
+                        include: {
+                            TicketTags: {
+                                include: {
+                                    Tag: true,
+                                },
+                            },
+                            Assigned: true,
+                            Customer: true,
+                        },
+                    },
+                    Pipeline: {
+                        include: {
+                            Lane: {
+                                include: {
+                                    Tickets: {
+                                        include: {
+                                            TicketTags: {
+                                                include: {
+                                                    Tag: true,
+                                                },
+                                            },
+                                            Assigned: true,
+                                            Customer: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            SidebarOption: true,
+            Invitation: true,
+            Notification: true,
+            Subscription: true,
+            AddOns: true,
+        },
+    });
+
+    return response;
+};
+
 export const deleteSubAccount = async (subaccountId: string) => {
     const response = await db.subAccount.delete({
         where: {
@@ -949,4 +1050,28 @@ export const getFunnelPageDetails = async (funnelPageId: string) => {
         },
     });
     return data;
+};
+
+export const getDomainContent = async (subDomainName: string) => {
+  const response = await db.funnel.findUnique({
+    where: {
+      subDomainName,
+    },
+    include: {
+      FunnelPages: true,
+    },
+  });
+
+  return response;
+};
+
+export const getFunnelPageByPath = async (funnelId: string, pathName: string) => {
+  const response = await db.funnelPage.findFirst({
+    where: {
+      funnelId,
+      pathName,
+    },
+  });
+
+  return response;
 };
