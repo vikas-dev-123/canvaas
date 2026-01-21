@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import RevenueChart from "@/components/charts/revenue-chart";
+import CustomPieChart from "@/components/charts/pie-chart";
 import { DollarSign, Users, TrendingUp, Calendar, Settings, Plus, Eye } from "lucide-react";
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -38,7 +39,8 @@ const Page = async ({ params }: { params: { agencyId: string } }) => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="ml-[300px] h-screen overflow-hidden">
+      <div className="h-full overflow-y-auto p-6 space-y-6 pb-8">
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
@@ -126,15 +128,7 @@ const Page = async ({ params }: { params: { agencyId: string } }) => {
                 <CardDescription>Monthly revenue trends</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="revenue" fill="#3b82f6" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <RevenueChart data={revenueData} />
               </CardContent>
             </Card>
 
@@ -219,25 +213,7 @@ const Page = async ({ params }: { params: { agencyId: string } }) => {
                 <CardTitle>Sub-Account Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={subAccountDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {subAccountDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <CustomPieChart data={subAccountDistribution} colors={COLORS} />
               </CardContent>
             </Card>
 
@@ -304,6 +280,7 @@ const Page = async ({ params }: { params: { agencyId: string } }) => {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };

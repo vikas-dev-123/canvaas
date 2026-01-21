@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import RevenueChart from "@/components/charts/revenue-chart";
+import CustomPieChart from "@/components/charts/pie-chart";
 import { DollarSign, Users, TrendingUp, Calendar, Settings, Plus, Eye, Mail, Phone, MapPin } from "lucide-react";
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -26,7 +27,10 @@ const Page = async ({ params }: { params: { subaccountId: string } }) => {
   // Extract data from responses
   const funnels = funnelsData || [];
   const media = mediaData?.Media || [];
-  const contacts = contactsData || [];
+  const contacts = contactsData?.Contact || [];
+
+  // Add scroll container styles
+  const scrollContainerClasses = "h-screen overflow-y-auto pb-8";
   
   // Calculate statistics
   const publishedFunnels = funnels.filter(f => f.published).length;
@@ -53,7 +57,8 @@ const Page = async ({ params }: { params: { subaccountId: string } }) => {
   ];
 
   return (
-    <div className="p-6 space-y-6 ml-[300px]">
+    <div className="ml-[300px] h-screen overflow-hidden">
+      <div className="h-full overflow-y-auto p-6 space-y-6 pb-8">
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
@@ -145,15 +150,7 @@ const Page = async ({ params }: { params: { subaccountId: string } }) => {
                 <CardDescription>Your recent activity trends</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="revenue" fill="#10b981" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <RevenueChart data={revenueData} />
               </CardContent>
             </Card>
 
@@ -319,25 +316,7 @@ const Page = async ({ params }: { params: { subaccountId: string } }) => {
                 <CardTitle>Funnel Performance</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={funnelPerformance}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {funnelPerformance.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <CustomPieChart data={funnelPerformance} colors={COLORS} />
               </CardContent>
             </Card>
 
@@ -414,6 +393,7 @@ const Page = async ({ params }: { params: { subaccountId: string } }) => {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };
