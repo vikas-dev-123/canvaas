@@ -227,7 +227,7 @@ cd canvaas
 npm install
 ```
 
-### Step 3: Set Up Environment Variables
+### Step 3: Set Up Environment Variables.
 Create a `.env` file in the root directory:
 
 ```bash
