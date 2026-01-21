@@ -1,6 +1,46 @@
-# Plura - Multi-Tenant Agency Management Platform
+# Canvaas - Multi-Tenant Agency Management Platform
 
-Plura is a comprehensive SaaS platform built with modern web technologies that enables agencies to manage multiple sub-accounts, create sales funnels, automate workflows, and track customer interactions. It features a complete CRM, pipeline management, ticket system, and white-label capabilities.
+Canvaas is a comprehensive SaaS platform built with modern web technologies that enables agencies to manage multiple sub-accounts, create sales funnels, automate workflows, and track customer interactions. It features a complete CRM, pipeline management, ticket system, and white-label capabilities.
+
+## 🚀 Key Features
+
+### Core Platform Features
+- **Multi-Tenant Architecture**: Support for multiple agencies and sub-accounts
+- **User Management**: Role-based access control (Agency Owner, Admin, Sub-account User/Guest)
+- **Authentication**: Secure authentication with Clerk
+- **White-Label Support**: Customize platform branding for different agencies
+
+### Agency Management
+- Manage multiple sub-accounts
+- Team member invitations and permissions management
+- Agency-specific branding and customization
+- Goal tracking and performance metrics
+
+### Sales & Automation
+- **Funnel Building**: Create and manage sales funnels with multiple pages
+- **Pipeline Management**: Organize deals and leads in customizable pipelines and lanes
+- **Ticket System**: Manage tasks and tickets within lanes with assignment and tagging
+- **Contact Management**: Build and organize customer database with tagging system
+- **Automation**: Create workflows triggered by contact form submissions
+- **CRM Integration**: Track customer interactions and manage relationships
+
+### Media & Assets
+- Media library management per sub-account
+- File upload capabilities with UploadThing integration
+
+### Payments & Subscriptions
+- Stripe integration for payment processing
+- Subscription management
+- Add-ons support for additional features
+
+### Notifications
+- Real-time notification system
+- Activity tracking across agencies
+
+### Dashboard & Analytics
+- Tremor-based analytics and charts
+- Real-time data visualization
+- Pipeline and performance metrics
 
 ## 📋 Table of Contents
 
@@ -193,7 +233,7 @@ Create a `.env` file in the root directory:
 ```bash
 # Database Configuration
 DATABASE_URL="mysql://username:password@host:port/database_name"
-LOCAL_DATABASE_URL="mysql://root:@localhost:3306/plura_dev?ssl-mode=DISABLED"
+LOCAL_DATABASE_URL="mysql://root:@localhost:3306/canvaas_dev?ssl-mode=DISABLED"
 
 # Clerk Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
