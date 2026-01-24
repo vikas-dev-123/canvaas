@@ -689,28 +689,22 @@ export const deletePipeline = async (pipelineId: string) => {
 };
 
 export const getLanesWithTicketAndTags = async (pipelineId: string) => {
-    const response = await db.lane.findMany({
-        where: {
-            pipelineId,
-        },
-        orderBy: {
-            order: "asc",
-        },
+  return await db.lane.findMany({
+    where: { pipelineId },
+    orderBy: { order: "asc" },
+    include: {
+      Tickets: {
+        orderBy: { order: "asc" },
         include: {
-            Tickets: {
-                orderBy: {
-                    order: "asc",
-                },
-                include: {
-                    Tags: true,
-                    Assigned: true,
-                    Customer: true,
-                },
-            },
+          TicketTags: {
+            include: { Tag: true },
+          },
+          Assigned: true,
+          Customer: true,
         },
-    });
-
-    return response;
+      },
+    },
+  });
 };
 
 export const upsertPipeline = async (pipeline: CreatePipeLineType) => {
@@ -726,16 +720,20 @@ export const upsertPipeline = async (pipeline: CreatePipeLineType) => {
 };
 
 export const getTicketsWithTags = async (pipelineId: string) => {
-    const response = await db.ticket.findMany({
-        where: {
-            Lane: {
-                pipelineId,
-            },
-        },
-        include: { Tags: true, Assigned: true, Customer: true },
-    });
-    return response;
+  return await db.ticket.findMany({
+    where: {
+      Lane: { pipelineId },
+    },
+    include: {
+      TicketTags: {
+        include: { Tag: true },
+      },
+      Assigned: true,
+      Customer: true,
+    },
+  });
 };
+
 
 export const upsertFunnel = async (subaccountId: string, funnel: z.infer<typeof CreateFunnelFormSchema> & { liveProducts: string }, funnelId: string) => {
     const response = await db.funnel.upsert({
