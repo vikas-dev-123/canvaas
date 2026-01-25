@@ -125,3 +125,19 @@ B (255 */
     -ms-overflow-style: none;
     overflow: scroll;
 }
+/* globals.css */
+.input {
+  @apply w-full bg-transparent border-b-2 border-slate-100 py-4 text-lg font-bold focus:outline-none focus:border-black;
+}
+
+.label {
+  @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 block;
+}
+
+.primary-btn {
+  @apply w-full py-8 bg-black text-white font-black text-xl tracking-[0.2em] uppercase flex items-center justify-center gap-4 hover:bg-slate-800 transition-all;
+}
+
+.error-box {
+  @apply p-4 bg-red-50 text-red-600 font-bold text-xs uppercase rounded-xl flex items-center gap-3;
+}
