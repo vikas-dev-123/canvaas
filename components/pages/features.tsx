@@ -36,7 +36,11 @@ export const Features: React.FC = () => {
 
         <div className="grid md:grid-cols-3 gap-6 preserve-3d">
           {manifesto.map((v, i) => (
-            <div key={i} className="depth-card bg-[#fafafa] dark:bg-white/5 p-12 rounded-3xl border border-black/5 dark:border-white/5 flex flex-col items-start gap-12 group transition-all">
+            <div key={i} className="depth-card bg-[#fafafa] dark:bg-white/5 p-12 rounded-3xl 
+  border border-black/5 dark:border-white/5 
+  flex flex-col items-start gap-12 
+  group transform transition-all duration-500 
+  hover:scale-[1.04]">
               <div className="w-14 h-14 bg-white dark:bg-black border border-black/5 dark:border-white/5 rounded-2xl flex items-center justify-center text-black dark:text-white shadow-sm group-hover:scale-110 transition-transform">
                 {v.icon}
               </div>

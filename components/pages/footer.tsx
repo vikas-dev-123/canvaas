@@ -20,7 +20,7 @@ const Footer = () => {
             </div>
 
             <p className="text-xl text-slate-500 dark:text-slate-400 max-w-sm mb-12 font-medium leading-relaxed">
-              Crafted with integrity by Suyash Tiwari and Vikash Dev Pandey. 
+              Crafted with integrity by Suyash Tiwari and Vikas Dev Pandey. 
               A new standard for the structural web.
             </p>
           </div>
@@ -79,7 +79,7 @@ const Footer = () => {
 
         {/* Bottom Bar */}
         <div className="pt-12 border-t border-black/5 dark:border-white/5 flex flex-col justify-between items-center gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 text-center">
-          <p>© 2024 CANVAS_ARCHITECTS. CRAFTED_BY_SUYASH_&_VIKASH.</p>
+          <p>© 2025 CANVAS_ARCHITECTS. CRAFTED_BY_SUYASH_&_VIKAS.</p>
         </div>
       </div>
     </footer>

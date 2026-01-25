@@ -57,7 +57,7 @@ const LandingHero = () => {
       </div>
 
       {/* Background text */}
-      <div className="absolute top-0 right-0 -mr-64 opacity-[0.03] dark:opacity-[0.05] pointer-events-none select-none">
+      <div className="absolute top-0 right-0 -mr-64 opacity-[0.03] dark:opacity-[0.05] pointer-events-none select-none animate-float-slow">
         <span className="text-[50rem] font-black leading-none dark:text-white">
           CORE
         </span>
