@@ -42,7 +42,9 @@ export type CreateMediaType = Prisma.MediaCreateWithoutSubaccountInput;
 export type CreatePipeLineType = Prisma.PipelineUncheckedCreateWithoutLaneInput;
 
 export type TicketAndTags = Ticket & {
-    Tags: Tag[];
+    TicketTags: {
+        Tag: Tag;
+    }[];
     Assigned: User | null;
     Customer: Contact | null;
 };

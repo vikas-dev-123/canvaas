@@ -98,8 +98,8 @@ const PipelineTicket = ({ setAllTickets, ticket, subAccountId, index }: Props) =
                                         </CardTitle>
                                         <span className="text-muted-foreground text-xs">{new Date().toLocaleDateString()}</span>
                                         <div className="flex items-center flex-wrap gap-2">
-                                            {ticket.Tags.map((tag) => (
-                                                <TagComponent key={tag.id} title={tag.name} colorName={tag.color} />
+                                            {ticket.TicketTags.map((ticketTag) => (
+                                                <TagComponent key={ticketTag.Tag.id} title={ticketTag.Tag.name} colorName={ticketTag.Tag.color} />
                                             ))}
                                         </div>
                                         <CardDescription className="w-full ">{ticket.description}</CardDescription>

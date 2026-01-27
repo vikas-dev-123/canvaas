@@ -177,7 +177,7 @@ const TicketForm = ({ getNewTicket, laneId, subaccountId }: Props) => {
                             )}
                         />
                         <h3>Add tags</h3>
-                        <TagCreator subAccountId={subaccountId} getSelectedTags={setTags} defaultTags={defaultData.ticket?.Tags || []} />
+                        <TagCreator subAccountId={subaccountId} getSelectedTags={setTags} defaultTags={defaultData.ticket?.TicketTags?.map(tt => tt.Tag) || []} />
                         <FormLabel>Assigned To Team Member</FormLabel>
                         <Select onValueChange={setAssignedTo} defaultValue={assignedTo}>
                             <SelectTrigger>

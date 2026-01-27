@@ -2,7 +2,7 @@
 
 import type { User as AuthUser } from "@clerk/nextjs/server";
 import { clerkClient, currentUser } from "@clerk/nextjs/server";
-import { Agency, Funnel, Lane, Plan, Prisma, Role, SubAccount, Ticket, User } from "@prisma/client";
+import { Agency, Funnel, Lane, Plan, Prisma, Role, SubAccount, Tag, Ticket, User } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { v4 } from "uuid";
 import { db } from "./db";
@@ -837,7 +837,11 @@ export const _getTicketsWithAllRelations = async (laneId: string) => {
             Assigned: true,
             Customer: true,
             Lane: true,
-            Tags: true,
+            TicketTags: {
+                include: {
+                    Tag: true
+                }
+            },
         },
     });
     return response;
@@ -891,12 +895,32 @@ export const upsertTicket = async (ticket: Prisma.TicketUncheckedCreateInput, ta
         where: {
             id: ticket.id || v4(),
         },
-        update: { ...ticket, Tags: { set: tags } },
-        create: { ...ticket, Tags: { connect: tags }, order },
+        update: { 
+            ...ticket, 
+            TicketTags: { 
+                deleteMany: {}, // First delete all existing connections
+                create: tags.map(tag => ({
+                    tagId: tag.id
+                }))
+            }
+        },
+        create: { 
+            ...ticket, 
+            order,
+            TicketTags: { 
+                create: tags.map(tag => ({
+                    tagId: tag.id
+                }))
+            }
+        },
         include: {
             Assigned: true,
             Customer: true,
-            Tags: true,
+            TicketTags: {
+                include: {
+                    Tag: true
+                }
+            },
             Lane: true,
         },
     });
@@ -917,7 +941,7 @@ export const upsertTag = async (subaccountId: string, tag: Prisma.TagUncheckedCr
 export const getTagsForSubaccount = async (subaccountId: string) => {
     const response = await db.subAccount.findUnique({
         where: { id: subaccountId },
-        select: { Tags: true },
+        include: { Tags: true },
     });
     return response;
 };
