@@ -103,8 +103,8 @@ const UserDetails = ({ id, type, userData, subAccounts }: Props) => {
   });
 
   useEffect(() => {
-    if (!data.user) return;
     const getPermissions = async () => {
+      if (!data?.user?.id) return;
       const permissions = await getUserPermissions(data.user.id);
       setSubAccountPermissions(permissions);
     };
