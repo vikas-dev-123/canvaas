@@ -98,7 +98,7 @@ export const EditorDemo: React.FC = () => {
                   <div className="space-y-10">
                     <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em]">Gemini AI Core</h4>
                     <div className="p-8 bg-blue-600/5 border border-blue-500/10 rounded-3xl">
-                       <p className="text-xs text-blue-200/40 leading-relaxed mb-8 font-medium">"Suggest premium architectural content for a world-class creative studio."</p>
+                       <p className="text-xs text-blue-200/40 leading-relaxed mb-8 font-medium">&#34;Suggest premium architectural content for a world-class creative studio.&#34;</p>
                        <button 
                         disabled={loading}
                         className="w-full py-5 bg-white text-black text-xs font-black tracking-widest uppercase hover:bg-slate-200 transition-all shadow-2xl disabled:opacity-50"
@@ -112,7 +112,7 @@ export const EditorDemo: React.FC = () => {
                   <div className="font-mono text-[10px] text-slate-500 space-y-4 leading-relaxed">
                      <p><span className="text-purple-400">export const</span> <span className="text-blue-400">Hero</span> = () =&gt; &#123;</p>
                      <p className="pl-4">return (</p>
-                     <p className="pl-8">&lt;Section <span className="text-yellow-400">integrity</span>="high"&gt;</p>
+                     <p className="pl-8">&lt;Section integrity=&quot;high&quot;&gt;</p>
                      <p className="pl-12">&lt;Headline&gt;&#123;headline&#125;&lt;/Headline&gt;</p>
                      <p className="pl-8">&lt;/Section&gt;</p>
                      <p className="pl-4">);</p>
