@@ -26,7 +26,7 @@ type Props = {
 };
 
 const InfoBar = ({ notifications, role, className, subAccountId }: Props) => {
-  const [allNotifications, setAllNotifications] = useState(notifications);
+  const [allNotifications, setAllNotifications] = useState<NotificationWithUser>(notifications);
   const [showAll, setShowAll] = useState(true);
 
   const handleClick = () => {
@@ -77,7 +77,7 @@ const InfoBar = ({ notifications, role, className, subAccountId }: Props) => {
               hover:bg-gray-800 transition"
             >
               <Bell className="w-5 h-5 text-gray-400 hover:text-white" />
-              {allNotifications?.length > 0 && (
+              {allNotifications && allNotifications.length > 0 && (
                 <span className="absolute top-2 right-2 w-2 h-2 rounded-full
                   bg-red-500 animate-pulse" />
               )}
