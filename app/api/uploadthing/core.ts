@@ -66,6 +66,28 @@ export const ourFileRouter = {
         url: file.ufsUrl,
       };
     }),
+  avatar: f({
+    image: {
+      maxFileSize: "4MB",
+      maxFileCount: 1,
+    },
+  })
+    .middleware(async () => {
+      const { userId } = await auth();
+      if (!userId) {
+        throw new UploadThingError("Unauthorized");
+      }
+      return { userId };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("✅ Avatar Upload completed");
+      console.log("User:", metadata.userId);
+      console.log("File URL:", file.ufsUrl);
+      return {
+        uploadedBy: metadata.userId,
+        url: file.ufsUrl,
+      };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;
