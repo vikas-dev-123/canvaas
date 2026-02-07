@@ -15,105 +15,145 @@ import Loading from "@/components/global/loading";
 import SubscriptionForm from ".";
 
 type Props = {
-    customerId: string;
-    planExists: boolean;
+  customerId: string;
+  planExists: boolean;
 };
 
 const SubscriptionFormWrapper = ({ customerId, planExists }: Props) => {
-    const { data, setOpen, setClose } = useModal();
-    const router = useRouter();
-    const [selectedPriceId, setSelectedPriceId] = useState<Plan | "">(data?.plans?.defaultPriceId || "");
+  const { data, setClose } = useModal();
+  const router = useRouter();
 
-    const [subscription, setSubscription] = useState<{
-        subscriptionId: string;
-        clientSecret: string;
-    }>({
-        subscriptionId: "",
-        clientSecret: "",
-    });
+  const [selectedPriceId, setSelectedPriceId] = useState<Plan | "">(
+    data?.plans?.defaultPriceId || ""
+  );
 
-    const options: StripeElementsOptions = useMemo(
-        () => ({
-            clientSecret: subscription.clientSecret,
-            appearance: {
-                theme: "night",
-            },
-        }),
-        [subscription]
-    );
+  const [subscription, setSubscription] = useState<{
+    subscriptionId: string;
+    clientSecret: string;
+  }>({
+    subscriptionId: "",
+    clientSecret: "",
+  });
 
-    useEffect(() => {
-        if (!selectedPriceId) return;
+  const options: StripeElementsOptions = useMemo(
+    () => ({
+      clientSecret: subscription.clientSecret,
+      appearance: {
+        theme: "night",
+      },
+    }),
+    [subscription]
+  );
 
-        const createSecret = async () => {
-            const subscriptionResponse = await fetch("/api/stripe/create-subscription", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    customerId,
-                    priceId: selectedPriceId,
-                }),
-            });
+  useEffect(() => {
+    if (!selectedPriceId) return;
 
-            const subscriptionResponseData = await subscriptionResponse.json();
-            setSubscription({
-                clientSecret: subscriptionResponseData.clientSecret,
-                subscriptionId: subscriptionResponseData.subscriptionId,
-            });
+    const createSecret = async () => {
+      const subscriptionResponse = await fetch(
+        "/api/stripe/create-subscription",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customerId,
+            priceId: selectedPriceId,
+          }),
+        }
+      );
 
-            if (planExists) {
-                toast({
-                    title: "Success",
-                    description: "Your plan has been successfully upgraded!",
-                });
-                setClose();
-                router.refresh();
-            }
-        };
-        createSecret();
-    }, [data, selectedPriceId, customerId]);
+      const subscriptionResponseData = await subscriptionResponse.json();
 
-    return (
-        <div className="border-none transition-all">
-            <div className="flex flex-col gap-4">
-                {data.plans?.plans.map((price) => (
-                    <Card
-                        onClick={() => setSelectedPriceId(price.id as Plan)}
-                        key={price.id}
-                        className={clsx("relative cursor-pointer transition-all", {
-                            "border-primary": selectedPriceId === price.id,
-                        })}
-                    >
-                        <CardHeader>
-                            <CardTitle>
-                                ₹{price.unit_amount ? price.unit_amount / 100 : "0"}
-                                <p className="text-sm text-muted-foreground">{price.nickname}</p>
-                                <p className="text-sm text-muted-foreground">{pricingCards.find((p) => p.priceId === price.id)?.description}</p>
-                            </CardTitle>
-                        </CardHeader>
-                        {selectedPriceId === price.id && <div className="w-2 h-2 bg-emerald-500 rounded-full absolute top-4 right-4" />}
-                    </Card>
-                ))}
+      setSubscription({
+        clientSecret: subscriptionResponseData.clientSecret,
+        subscriptionId: subscriptionResponseData.subscriptionId,
+      });
 
-                {options.clientSecret && !planExists && (
-                    <>
-                        <h1 className="text-xl">Payment Method</h1>
-                        <Elements stripe={getStripe()} options={options}>
-                            <SubscriptionForm selectedPriceId={selectedPriceId} />
-                        </Elements>
-                    </>
-                )}
+      if (planExists) {
+        toast({
+          title: "Success",
+          description: "Your plan has been successfully upgraded!",
+        });
+        setClose();
+        router.refresh();
+      }
+    };
 
-                {!options.clientSecret && selectedPriceId && (
-                    <div className="flex items-center justify-center w-full h-40">
-                        <Loading />
-                    </div>
-                )}
-            </div>
+    createSecret();
+  }, [selectedPriceId, customerId]);
+
+  return (
+    <div className="space-y-6">
+      {/* PLAN SELECTION */}
+      <div className="space-y-4">
+        {data.plans?.plans.map((price) => {
+          const isActive = selectedPriceId === price.id;
+
+          return (
+            <Card
+              key={price.id}
+              onClick={() => setSelectedPriceId(price.id as Plan)}
+              className={clsx(
+                `
+                  relative cursor-pointer rounded-xl border
+                  bg-white dark:bg-[#101010]
+                  border-neutral-200 dark:border-neutral-800
+                  transition-all
+                  hover:shadow-[0_16px_32px_-16px_rgba(0,0,0,0.6)]
+                `,
+                {
+                  "ring-2 ring-emerald-500": isActive,
+                }
+              )}
+            >
+              <CardHeader className="space-y-2">
+                <CardTitle className="text-lg font-semibold text-black dark:text-white">
+                  ₹{price.unit_amount ? price.unit_amount / 100 : "0"}
+                </CardTitle>
+
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  {price.nickname}
+                </p>
+
+                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                  {
+                    pricingCards.find(
+                      (p) => p.priceId === price.id
+                    )?.description
+                  }
+                </p>
+              </CardHeader>
+
+              {isActive && (
+                <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* PAYMENT SECTION */}
+      {options.clientSecret && !planExists && (
+        <div className="space-y-4">
+          <h1 className="text-xl font-semibold text-black dark:text-white">
+            Payment_Method
+          </h1>
+
+          <Elements stripe={getStripe()} options={options}>
+            <SubscriptionForm selectedPriceId={selectedPriceId} />
+          </Elements>
         </div>
-    );
+      )}
+
+      {/* LOADING */}
+      {!options.clientSecret && selectedPriceId && (
+        <div className="flex items-center justify-center w-full h-40 rounded-xl
+          bg-neutral-50 dark:bg-neutral-900 border
+          border-neutral-200 dark:border-neutral-800">
+          <Loading />
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default SubscriptionFormWrapper;

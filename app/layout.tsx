@@ -34,7 +34,7 @@ export default function RootLayout({
                          */
                         routerConfig={extractRouterConfig(ourFileRouter)}
                     />
-                    <ModalProvider>
+                    <ModalProvider >
                         {children}
                         <Toaster />
                     </ModalProvider>

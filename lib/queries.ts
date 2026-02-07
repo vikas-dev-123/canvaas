@@ -1,7 +1,8 @@
 "use server";
 
 import type { User as AuthUser } from "@clerk/nextjs/server";
-import { clerkClient, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { Agency, Funnel, Lane, Plan, Prisma, Role, SubAccount, Tag, Ticket, User } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { v4 } from "uuid";
@@ -21,7 +22,7 @@ export const getUser = async (id: string) => {
 };
 
 export const deleteUser = async (userId: string) => {
-    await clerkClient.users.updateUserMetadata(userId, {
+    await clerkClient().users.updateUserMetadata(userId, {
         privateMetadata: {
             role: undefined,
         },
@@ -59,7 +60,7 @@ export const getAuthUserDetails = async () => {
     return userData;
 };
 
-export const saveActivityLogsNotification = async ({ agencyId, description, subAccountId }: { agencyId?: String; description?: String; subAccountId?: String }) => {
+export const saveActivityLogsNotification = async ({ agencyId, description, subAccountId }: { agencyId?: string; description?: string; subAccountId?: string }) => {
     const authUser = await currentUser();
     let userData;
     if (!authUser) {
@@ -67,7 +68,7 @@ export const saveActivityLogsNotification = async ({ agencyId, description, subA
             where: {
                 Agency: {
                     SubAccount: {
-                        some: { id: subAccountId },
+                        some: { id: subAccountId as string },
                     },
                 },
             },
@@ -94,11 +95,11 @@ export const saveActivityLogsNotification = async ({ agencyId, description, subA
 
         const response = await db.subAccount.findUnique({
             where: {
-                id: subAccountId,
+                id: subAccountId as string,
             },
         });
 
-        if (response) foundAgencyId = response.agencyId;
+        if (response) foundAgencyId = response.agencyId.toString();
     }
 
     if (subAccountId) {
@@ -112,12 +113,12 @@ export const saveActivityLogsNotification = async ({ agencyId, description, subA
                 },
                 Agency: {
                     connect: {
-                        id: foundAgencyId,
+                        id: foundAgencyId as string,
                     },
                 },
                 SubAccount: {
                     connect: {
-                        id: subAccountId,
+                        id: subAccountId as string,
                     },
                 },
             },
@@ -133,7 +134,7 @@ export const saveActivityLogsNotification = async ({ agencyId, description, subA
                 },
                 Agency: {
                     connect: {
-                        id: foundAgencyId,
+                        id: foundAgencyId as string,
                     },
                 },
             },
@@ -150,7 +151,7 @@ export const updateUser = async (user: Partial<User>) => {
             ...user,
         },
     });
-    await clerkClient.users.updateUserMetadata(response.id, {
+    await clerkClient().users.updateUserMetadata(response.id, {
         publicMetadata: {
             role: user.role || "SUBACCOUNT_USER",
         },
@@ -222,7 +223,7 @@ export const verifyAndAcceptInvitation = async () => {
             subAccountId: undefined,
         });
         if (userDetails) {
-            await clerkClient.users.updateUserMetadata(user.id, {
+            await clerkClient().users.updateUserMetadata(user.id, {
                 privateMetadata: {
                     role: userDetails.role || "SUBACCOUNT_USER",
                 },
@@ -292,7 +293,7 @@ export const initUser = async (newUser: Partial<User>) => {
         },
     });
 
-    await clerkClient.users.updateUserMetadata(user.id, {
+    await clerkClient().users.updateUserMetadata(user.id, {
         privateMetadata: {
             role: newUser.role || "SUBACCOUNT_USER",
         },
@@ -620,7 +621,7 @@ export const sendInvitation = async (role: Role, email: string, agencyId: string
     });
 
     try {
-        await clerkClient.invitations.createInvitation({
+        await clerkClient().invitations.createInvitation({
             emailAddress: email,
             redirectUrl: process.env.NEXT_PUBLIC_URL,
             publicMetadata: {

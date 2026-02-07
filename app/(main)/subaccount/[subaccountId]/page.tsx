@@ -57,7 +57,7 @@ const Page = async ({ params }: { params: { subaccountId: string } }) => {
   ];
 
   return (
-    <div className="ml-[300px] h-screen overflow-hidden">
+    <div className="h-screen overflow-hidden">
       <div className="h-full overflow-y-auto p-6 space-y-6 pb-8">
       {/* Header Section */}
       <div className="flex items-center justify-between">

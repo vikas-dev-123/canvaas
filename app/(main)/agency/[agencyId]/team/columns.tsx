@@ -1,10 +1,27 @@
 "use client";
 import UserDetails from "@/components/forms/user-details";
 import CustomModal from "@/components/global/custom-modal";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
 import { deleteUser, getUser } from "@/lib/queries";
 import { UsersWithAgencySubAccountPermissionsSidebarOptions } from "@/lib/types";
@@ -17,174 +34,216 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
-export const columns: ColumnDef<UsersWithAgencySubAccountPermissionsSidebarOptions>[] = [
+export const columns: ColumnDef<UsersWithAgencySubAccountPermissionsSidebarOptions>[] =
+  [
     {
-        accessorKey: "id",
-        header: "",
-        cell: () => {
-            return null;
-        },
+      accessorKey: "id",
+      header: "",
+      cell: () => null,
     },
+
+    /* NAME + AVATAR */
     {
-        accessorKey: "name",
-        header: "Name",
-        cell: ({ row }) => {
-            const avatarUrl = row.getValue("avatarUrl") as string;
-            return (
-                <div className="flex items-center gap-4">
-                    <div className="h-11 w-11 relative flex-none">
-                        <Image src={avatarUrl} fill className="rounded-full object-cover" alt="avatar image" />
-                    </div>
-                    <span>{row.getValue("name")}</span>
-                </div>
-            );
-        },
+      accessorKey: "name",
+      header: "User",
+      cell: ({ row }) => {
+        const avatarUrl = row.getValue("avatarUrl") as string;
+        return (
+          <div className="flex items-center gap-4">
+            <div className="relative h-10 w-10 rounded-full overflow-hidden border border-neutral-800">
+              <Image
+                src={avatarUrl}
+                fill
+                className="object-cover"
+                alt="avatar"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-black dark:text-white">
+                {row.getValue("name")}
+              </span>
+              <span className="text-xs text-neutral-500">
+                {row.getValue("email")}
+              </span>
+            </div>
+          </div>
+        );
+      },
     },
-    {
-        accessorKey: "avatarUrl",
-        header: "",
-        cell: () => {
-            return null;
-        },
-    },
+
+    { accessorKey: "avatarUrl", header: "", cell: () => null },
     { accessorKey: "email", header: "Email" },
-    {
-        accessorKey: "SubAccount",
-        header: "Owned Accounts",
-        cell: ({ row }) => {
-            const isAgencyOwner = row.getValue("role") === "AGENCY_OWNER";
-            const ownedAccounts = row.original?.Permissions.filter((per) => per.access);
 
-            if (isAgencyOwner)
-                return (
-                    <div className="flex flex-col items-start">
-                        <div className="flex flex-col gap-2">
-                            <Badge className="bg-slate-600 whitespace-nowrap">Agency - {row?.original?.Agency?.name}</Badge>
-                        </div>
-                    </div>
-                );
-            return (
-                <div className="flex flex-col items-start">
-                    <div className="flex flex-col gap-2">
-                        {ownedAccounts?.length ? (
-                            ownedAccounts.map((account) => (
-                                <Badge key={account.id} className="bg-slate-600 w-fit whitespace-nowrap">
-                                    Sub Account - {account.SubAccount.name}
-                                </Badge>
-                            ))
-                        ) : (
-                            <div className="text-muted-foreground">No Access Yet</div>
-                        )}
-                    </div>
-                </div>
-            );
-        },
-    },
+    /* OWNED ACCOUNTS */
     {
-        accessorKey: "role",
-        header: "Role",
-        cell: ({ row }) => {
-            const role: Role = row.getValue("role");
-            return (
+      accessorKey: "SubAccount",
+      header: "Access",
+      cell: ({ row }) => {
+        const isOwner = row.getValue("role") === "AGENCY_OWNER";
+        const owned = row.original?.Permissions.filter((p) => p.access);
+
+        if (isOwner) {
+          return (
+            <Badge className="bg-black text-white dark:bg-white dark:text-black">
+              Agency Owner
+            </Badge>
+          );
+        }
+
+        return (
+          <div className="flex flex-wrap gap-2">
+            {owned?.length ? (
+              owned.map((acc) => (
                 <Badge
-                    className={clsx({
-                        "bg-emerald-500": role === "AGENCY_OWNER",
-                        "bg-orange-400": role === "AGENCY_ADMIN",
-                        "bg-primary": role === "SUBACCOUNT_USER",
-                        "bg-muted": role === "SUBACCOUNT_GUEST",
-                    })}
+                  key={acc.id}
+                  className="bg-neutral-800 text-neutral-200"
                 >
-                    {role}
+                  {acc.SubAccount.name}
                 </Badge>
-            );
-        },
+              ))
+            ) : (
+              <span className="text-xs text-neutral-500">No Access</span>
+            )}
+          </div>
+        );
+      },
     },
-    {
-        id: "actions",
-        cell: ({ row }) => {
-            const rowData = row.original;
 
-            return <CellActions rowData={rowData} />;
-        },
+    /* ROLE */
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => {
+        const role: Role = row.getValue("role");
+
+        return (
+          <Badge
+            className={clsx(
+              "rounded-md px-2 py-1 text-xs font-semibold",
+              {
+                "bg-emerald-500 text-black": role === "AGENCY_OWNER",
+                "bg-orange-400 text-black": role === "AGENCY_ADMIN",
+                "bg-blue-500 text-white": role === "SUBACCOUNT_USER",
+                "bg-neutral-700 text-neutral-200":
+                  role === "SUBACCOUNT_GUEST",
+              }
+            )}
+          >
+            {role}
+          </Badge>
+        );
+      },
     },
-];
+
+    /* ACTIONS */
+    {
+      id: "actions",
+      cell: ({ row }) => <CellActions rowData={row.original} />,
+    },
+  ];
 
 interface CellActionsProps {
-    rowData: UsersWithAgencySubAccountPermissionsSidebarOptions;
+  rowData: UsersWithAgencySubAccountPermissionsSidebarOptions;
 }
 
 const CellActions: React.FC<CellActionsProps> = ({ rowData }) => {
-    const { data, setOpen } = useModal();
-    const { toast } = useToast();
-    const [loading, setLoading] = useState(false);
-    const router = useRouter();
-    if (!rowData) return;
-    if (!rowData.Agency) return;
-    return (
-        <AlertDialog>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem className="flex gap-2" onClick={() => navigator.clipboard.writeText(rowData?.email)}>
-                        <Copy size={15} /> Copy Email
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        className="flex gap-2"
-                        onClick={() => {
-                            setOpen(
-                                <CustomModal subheading="You can change permissions only when the user has an owned subaccount" title="Edit User Details">
-                                    <UserDetails type="agency" id={rowData?.Agency?.id || null} subAccounts={rowData?.Agency?.SubAccount} />
-                                </CustomModal>,
-                                async () => {
-                                    return { user: await getUser(rowData?.id) };
-                                }
-                            );
-                        }}
-                    >
-                        <Edit size={15} />
-                        Edit Details
-                    </DropdownMenuItem>
-                    {rowData.role !== "AGENCY_OWNER" && (
-                        <AlertDialogTrigger asChild>
-                            <DropdownMenuItem className="flex gap-2" onClick={() => {}}>
-                                <Trash size={15} /> Remove User
-                            </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                    )}
-                </DropdownMenuContent>
-            </DropdownMenu>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle className="text-left">Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-left">This action cannot be undone. This will permanently delete the user and related data.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="flex items-center">
-                    <AlertDialogCancel className="mb-2">Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                        disabled={loading}
-                        className="bg-destructive hover:bg-destructive"
-                        onClick={async () => {
-                            setLoading(true);
-                            await deleteUser(rowData.id);
-                            toast({
-                                title: "Deleted User",
-                                description: "The user has been deleted from this agency they no longer have access to the agency",
-                            });
-                            setLoading(false);
-                            router.refresh();
-                        }}
-                    >
-                        Delete
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
+  const { setOpen } = useModal();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  if (!rowData || !rowData.Agency) return null;
+
+  return (
+    <AlertDialog>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="h-8 w-8 p-0 hover:bg-neutral-200 dark:hover:bg-neutral-800"
+          >
+            <MoreHorizontal className="h-4 w-4 text-neutral-500" />
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          align="end"
+          className="bg-white dark:bg-[#101010] border-neutral-200 dark:border-neutral-800"
+        >
+          <DropdownMenuLabel className="text-neutral-500">
+            User Actions
+          </DropdownMenuLabel>
+
+          <DropdownMenuItem
+            className="flex gap-2"
+            onClick={() =>
+              navigator.clipboard.writeText(rowData.email)
+            }
+          >
+            <Copy size={14} /> Copy Email
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem
+            className="flex gap-2"
+            onClick={() =>
+              setOpen(
+                <CustomModal
+                  title="Edit_User"
+                  subheading="Manage role & permissions"
+                >
+                  <UserDetails
+                    type="agency"
+                    id={rowData.Agency?.id || null}
+                    subAccounts={rowData.Agency.SubAccount}
+                  />
+                </CustomModal>,
+                async () => ({ user: await getUser(rowData.id) })
+              )
+            }
+          >
+            <Edit size={14} /> Edit Details
+          </DropdownMenuItem>
+
+          {rowData.role !== "AGENCY_OWNER" && (
+            <AlertDialogTrigger asChild>
+              <DropdownMenuItem className="flex gap-2 text-red-500">
+                <Trash size={14} /> Remove User
+              </DropdownMenuItem>
+            </AlertDialogTrigger>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialogContent className="bg-white dark:bg-[#101010] border-neutral-800">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently remove the user and revoke all access.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-700"
+            onClick={async () => {
+              setLoading(true);
+              await deleteUser(rowData.id);
+              toast({
+                title: "User Removed",
+                description: "Access revoked successfully",
+              });
+              setLoading(false);
+              router.refresh();
+            }}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 };
