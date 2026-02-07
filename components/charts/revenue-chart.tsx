@@ -38,7 +38,7 @@ const RevenueChart = ({ data }: RevenueChartProps) => {
         <Tooltip
           cursor={{ fill: "#111827" }}
           content={({ active, payload, label }) =>
-            active && payload?.length ? (
+            active && payload && payload.length > 0 && payload[0]?.value ? (
               <div className="rounded-lg border border-gray-700 bg-black p-3 shadow-xl">
                 <p className="text-xs font-mono text-gray-400 mb-1">
                   {label}

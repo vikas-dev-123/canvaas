@@ -25,7 +25,20 @@ const CustomPieChart = ({ data, colors }: PieChartProps) => {
             <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
           ))}
         </Pie>
-        <Tooltip />
+        <Tooltip
+          content={({ active, payload }) =>
+            active && payload && payload.length > 0 ? (
+              <div className="rounded-lg border border-gray-700 bg-black p-3 shadow-xl">
+                <p className="text-xs font-mono text-gray-400">
+                  {payload[0].name}
+                </p>
+                <p className="text-sm font-bold font-mono text-blue-400">
+                  {payload[0]?.value?.toLocaleString()}
+                </p>
+              </div>
+            ) : null
+          }
+        />
       </PieChart>
     </ResponsiveContainer>
   );
