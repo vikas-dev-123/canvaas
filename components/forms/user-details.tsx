@@ -114,7 +114,7 @@ const UserDetails = ({ id, type, userData, subAccounts }: Props) => {
   useEffect(() => {
     if (data.user) form.reset(data.user);
     if (userData) form.reset(userData);
-  }, [userData, data]);
+  }, [userData, data, form]);
 
   /* LOGIC UNCHANGED */
 

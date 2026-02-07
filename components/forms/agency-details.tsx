@@ -91,7 +91,7 @@ const AgencyDetails = ({ data }: Props) => {
 
   useEffect(() => {
     if (data) form.reset(data);
-  }, [data]);
+  }, [data, form]);
 
   /* LOGIC UNCHANGED */
 

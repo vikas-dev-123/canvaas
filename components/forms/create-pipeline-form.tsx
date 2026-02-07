@@ -42,7 +42,7 @@ const CreatePipelineForm: React.FC<CreatePipelineFormProps> = ({ defaultData, su
                 name: defaultData?.name || "",
             });
         }
-    }, [defaultData]);
+    }, [defaultData, form]);
 
     const isLoading = form.formState.isLoading;
 

@@ -79,7 +79,7 @@ const SubscriptionFormWrapper = ({ customerId, planExists }: Props) => {
     };
 
     createSecret();
-  }, [selectedPriceId, customerId]);
+  }, [selectedPriceId, customerId, planExists, router, setClose]);
 
   return (
     <div className="space-y-6">

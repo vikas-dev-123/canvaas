@@ -31,7 +31,7 @@ const FunnelEditorNavigation: React.FC<Props> = ({ funnelId, funnelPageDetails, 
                 funnelPageId: funnelPageDetails.id,
             },
         });
-    }, [funnelPageDetails]);
+    }, [funnelPageDetails, dispatch]);
 
     const handleOnBlurTitleChange: FocusEventHandler<HTMLInputElement> = async (event) => {
         if (event.target.value === funnelPageDetails.name) return;

@@ -42,7 +42,7 @@ const LaneForm: React.FC<CreateLaneFormProps> = ({ defaultData, pipelineId }) =>
                 name: defaultData.name || "",
             });
         }
-    }, [defaultData]);
+    }, [defaultData, form]);
 
     const isLoading = form.formState.isLoading;
 
