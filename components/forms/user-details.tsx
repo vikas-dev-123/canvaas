@@ -309,9 +309,10 @@ const UserDetails = ({ id, type, userData, subAccounts }: Props) => {
                           disabled={loadingPermissions}
                           checked={permission?.access}
                           onCheckedChange={(val) =>
+                            data.user?.email &&
                             changeUserPermission(
                               permission?.id ?? v4(),
-                              data.user.email,
+                              data.user.email!,  // We already checked that email exists
                               subAccount.id,
                               val
                             )
