@@ -44,6 +44,8 @@ export type CreatePipeLineType = Prisma.PipelineUncheckedCreateWithoutLaneInput;
 export type TicketAndTags = Ticket & {
     TicketTags: {
         Tag: Tag;
+        ticketId: string;
+        tagId: string;
     }[];
     Assigned: User | null;
     Customer: Contact | null;
