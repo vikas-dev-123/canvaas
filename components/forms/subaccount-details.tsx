@@ -97,11 +97,13 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
         goal: 5000,
       });
 
-      await saveActivityLogsNotification({
-        agencyId: response.agencyId,
-        description: `${userName} | updated sub account | ${response.name}`,
-        subAccountId: response.id,
-      });
+      if (response) {
+        await saveActivityLogsNotification({
+          agencyId: response.agencyId ?? null,
+          description: `${userName} | updated sub account | ${response.name ?? ''}`,
+          subAccountId: response.id,
+        });
+      }
 
       toast({
         title: "Subaccount saved",
