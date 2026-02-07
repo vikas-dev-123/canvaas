@@ -558,17 +558,6 @@ export const getAgencyWithAllData = async (agencyId: string) => {
                     },
                     Media: true,
                     Contact: true,
-                    Ticket: {
-                        include: {
-                            TicketTags: {
-                                include: {
-                                    Tag: true,
-                                },
-                            },
-                            Assigned: true,
-                            Customer: true,
-                        },
-                    },
                     Pipeline: {
                         include: {
                             Lane: {
@@ -588,9 +577,9 @@ export const getAgencyWithAllData = async (agencyId: string) => {
                             },
                         },
                     },
+                    SidebarOption: true,
                 },
             },
-            SidebarOption: true,
             Invitation: true,
             Notification: true,
             Subscription: true,
