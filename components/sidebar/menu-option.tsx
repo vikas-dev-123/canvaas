@@ -276,7 +276,7 @@ const MenuOptions = ({
                             href={opt.link}
                             className="flex items-center gap-3 w-full"
                           >
-                            {Icon && <Icon className="w-4 h-4" />}
+                            {Icon && <div className="w-4 h-4 flex items-center justify-center"><div className="w-full h-full flex items-center justify-center scale-50 origin-top-left"><Icon /></div></div>}
                             <span className="text-sm text-black dark:text-white">
                               {opt.name}
                             </span>
