@@ -46,13 +46,47 @@ const PricingCard = ({
   const plan = searchParams.get("plan");
 
   const handleManagePlan = async () => {
+    let validCustomerId = customerId;
+    
+    // Check if customerId is valid, if not create one
+    if (!customerId || customerId.trim() === "") {
+      try {
+        // Get the agencyId from the URL
+        const pathParts = window.location.pathname.split('/');
+        const agencyId = pathParts[pathParts.indexOf('agency') + 1];
+        
+        if (agencyId) {
+          // Ensure the agency has a valid customer ID
+          const response = await fetch('/api/ensure-customer', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ agencyId }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            validCustomerId = data.customerId;
+          } else {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create customer');
+          }
+        }
+      } catch (error) {
+        console.error('Error creating customer:', error);
+        alert('Failed to set up customer account. Please try again or contact support.');
+        return;
+      }
+    }
+    
     setOpen(
       <CustomModal
         title="Manage_Plan"
         subheading="Modify your subscription parameters at any time"
       >
         <SubscriptionFormWrapper
-          customerId={customerId}
+          customerId={validCustomerId}
           planExists={planExists}
         />
       </CustomModal>,

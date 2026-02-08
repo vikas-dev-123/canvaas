@@ -56,7 +56,20 @@ export default function SignUpPage() {
       setMessage("VERIFICATION_CODE_SENT");
       setStep("verify"); // ✅ move to OTP screen
     } catch (err: any) {
-      setError(err?.errors?.[0]?.message ?? "SIGN_UP_FAILED");
+      console.error("Sign up error:", err);
+      // Better error handling for sign up
+      if (err.errors && err.errors.length > 0) {
+        const firstError = err.errors[0];
+        if (firstError.code === "form_identifier_exists") {
+          setError("An account with this email already exists.");
+        } else if (firstError.code === "form_password_pwned") {
+          setError("Password is too weak. Please choose a stronger password.");
+        } else {
+          setError(firstError.message || "Sign up failed. Please try again.");
+        }
+      } else {
+        setError("Sign up failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -79,8 +92,18 @@ export default function SignUpPage() {
         await setActive({ session: res.createdSessionId });
         router.push("/");
       }
-    } catch {
-      setError("INVALID_VERIFICATION_CODE");
+    } catch (err: any) {
+      console.error("Verification error:", err);
+      if (err.errors && err.errors.length > 0) {
+        const firstError = err.errors[0];
+        if (firstError.code === "verification_failed") {
+          setError("Invalid or expired verification code.");
+        } else {
+          setError(firstError.message || "Verification failed. Please try again.");
+        }
+      } else {
+        setError("Invalid verification code. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

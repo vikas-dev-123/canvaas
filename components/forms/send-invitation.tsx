@@ -71,15 +71,15 @@ const SendInvitation: React.FC<SendInvitationProps> = ({ agencyId }) => {
       });
 
       toast({
-        title: "Success",
-        description: "Invitation sent successfully",
+        title: "Invitation sent",
+        description: "The user will receive an email shortly.",
       });
 
       form.reset();
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Something went wrong",
         description: "Could not send invitation",
       });
     }
@@ -88,26 +88,28 @@ const SendInvitation: React.FC<SendInvitationProps> = ({ agencyId }) => {
   return (
     <Card
       className="
-        border border-neutral-200 dark:border-neutral-800
-        bg-white dark:bg-[#101010]
-        shadow-[0_20px_40px_-20px_rgba(0,0,0,0.8)]
+        w-full
         rounded-2xl
+        border border-neutral-200 dark:border-neutral-800
+        bg-white dark:bg-[#0f0f0f]
       "
     >
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-xl font-semibold text-black dark:text-white">
-          Invite_User
+      {/* HEADER */}
+      <CardHeader className="space-y-1 pb-4">
+        <CardTitle className="text-lg font-semibold text-black dark:text-white">
+          Invite Team Member
         </CardTitle>
         <CardDescription className="text-sm text-neutral-500">
-          Send an invitation to add a new team member to this agency.
+          Send an invitation to add someone to your agency.
         </CardDescription>
       </CardHeader>
 
+      {/* CONTENT */}
       <CardContent>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col gap-6"
+            className="space-y-6"
           >
             {/* EMAIL */}
             <FormField
@@ -116,18 +118,12 @@ const SendInvitation: React.FC<SendInvitationProps> = ({ agencyId }) => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                    Email_Address
-                  </FormLabel>
+                  <FormLabel>Email address</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
-                      placeholder="user@email.com"
-                      className="
-                        bg-white dark:bg-neutral-900
-                        border-neutral-300 dark:border-neutral-700
-                        focus:border-black dark:focus:border-white
-                      "
+                      placeholder="user@company.com"
+                      className="h-11 rounded-lg"
                     />
                   </FormControl>
                   <FormMessage />
@@ -142,26 +138,19 @@ const SendInvitation: React.FC<SendInvitationProps> = ({ agencyId }) => {
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                    Access_Role
-                  </FormLabel>
+                  <FormLabel>Access role</FormLabel>
                   <Select
                     onValueChange={(value) => field.onChange(value)}
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger
-                        className="
-                          bg-white dark:bg-neutral-900
-                          border-neutral-300 dark:border-neutral-700
-                        "
-                      >
-                        <SelectValue placeholder="Select role..." />
+                      <SelectTrigger className="h-11 rounded-lg">
+                        <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent
                       className="
-                        bg-white dark:bg-[#101010]
+                        bg-white dark:bg-[#0f0f0f]
                         border-neutral-200 dark:border-neutral-800
                       "
                     >
@@ -181,23 +170,25 @@ const SendInvitation: React.FC<SendInvitationProps> = ({ agencyId }) => {
               )}
             />
 
-            {/* SUBMIT */}
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
-              className="
-                w-full rounded-xl
-                bg-black text-white
-                dark:bg-white dark:text-black
-                hover:opacity-90
-              "
-            >
-              {form.formState.isSubmitting ? (
-                <Loading />
-              ) : (
-                "Send_Invitation"
-              )}
-            </Button>
+            {/* ACTION */}
+            <div className="pt-2">
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="
+                  w-full h-11 rounded-xl
+                  bg-black text-white
+                  dark:bg-white dark:text-black
+                  hover:opacity-90
+                "
+              >
+                {form.formState.isSubmitting ? (
+                  <Loading />
+                ) : (
+                  "Send Invitation"
+                )}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

@@ -1,116 +1,162 @@
 "use client";
 import React, { useEffect } from "react";
 import { z } from "zod";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
 import { useForm } from "react-hook-form";
-import { Funnel, Lane, Pipeline } from "@prisma/client";
+import { Lane } from "@prisma/client";
 import { Input } from "../ui/input";
-
 import { Button } from "../ui/button";
 import Loading from "../global/loading";
-import { getPipelineDetails, saveActivityLogsNotification, upsertFunnel, upsertLane, upsertPipeline } from "@/lib/queries";
-import { v4 } from "uuid";
+import {
+  getPipelineDetails,
+  saveActivityLogsNotification,
+  upsertLane,
+} from "@/lib/queries";
 import { toast } from "../ui/use-toast";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useModal } from "@/providers/modal-provider";
 
 interface CreateLaneFormProps {
-    defaultData?: Lane;
-    pipelineId: string;
+  defaultData?: Lane;
+  pipelineId: string;
 }
 
 const LaneFormSchema = z.object({
-    name: z.string().min(1),
+  name: z.string().min(1),
 });
 
-const LaneForm: React.FC<CreateLaneFormProps> = ({ defaultData, pipelineId }) => {
-    const { setClose } = useModal();
-    const router = useRouter();
-    const form = useForm<z.infer<typeof LaneFormSchema>>({
-        mode: "onChange",
-        resolver: zodResolver(LaneFormSchema),
-        defaultValues: {
-            name: defaultData?.name || "",
-        },
-    });
+const LaneForm: React.FC<CreateLaneFormProps> = ({
+  defaultData,
+  pipelineId,
+}) => {
+  const { setClose } = useModal();
+  const router = useRouter();
 
-    useEffect(() => {
-        if (defaultData) {
-            form.reset({
-                name: defaultData.name || "",
-            });
-        }
-    }, [defaultData, form]);
+  const form = useForm<z.infer<typeof LaneFormSchema>>({
+    mode: "onChange",
+    resolver: zodResolver(LaneFormSchema),
+    defaultValues: {
+      name: defaultData?.name || "",
+    },
+  });
 
-    const isLoading = form.formState.isLoading;
+  useEffect(() => {
+    if (defaultData) {
+      form.reset({
+        name: defaultData.name || "",
+      });
+    }
+  }, [defaultData, form]);
 
-    const onSubmit = async (values: z.infer<typeof LaneFormSchema>) => {
-        if (!pipelineId) return;
-        try {
-            const response = await upsertLane({
-                ...values,
-                id: defaultData?.id,
-                pipelineId: pipelineId,
-                order: defaultData?.order,
-            });
+  const isLoading = form.formState.isLoading;
 
-            const d = await getPipelineDetails(pipelineId);
-            if (!d) return;
+  const onSubmit = async (values: z.infer<typeof LaneFormSchema>) => {
+    if (!pipelineId) return;
 
-            await saveActivityLogsNotification({
-                agencyId: undefined,
-                description: `Updated a lane | ${response?.name}`,
-                subAccountId: d.subAccountId,
-            });
+    try {
+      const response = await upsertLane({
+        ...values,
+        id: defaultData?.id,
+        pipelineId,
+        order: defaultData?.order,
+      });
 
-            toast({
-                title: "Success",
-                description: "Saved pipeline details",
-            });
+      const d = await getPipelineDetails(pipelineId);
+      if (!d) return;
 
-            router.refresh();
-        } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Oppse!",
-                description: "Could not save pipeline details",
-            });
-        }
-        setClose();
-    };
-    return (
-        <Card className="w-full ">
-            <CardHeader>
-                <CardTitle>Lane Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                        <FormField
-                            disabled={isLoading}
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Lane Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Lane Name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+      await saveActivityLogsNotification({
+        agencyId: undefined,
+        description: `Updated a lane | ${response?.name}`,
+        subAccountId: d.subAccountId,
+      });
 
-                        <Button className="w-20 mt-4" disabled={isLoading} type="submit">
-                            {form.formState.isSubmitting ? <Loading /> : "Save"}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-    );
+      toast({
+        title: "Success",
+        description: "Lane saved successfully",
+      });
+
+      router.refresh();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Oppse!",
+        description: "Could not save lane details",
+      });
+    }
+
+    setClose();
+  };
+
+  return (
+    <Card
+      className="
+        w-full
+        rounded-2xl
+        border border-neutral-200 dark:border-neutral-800
+        bg-white dark:bg-[#0f0f0f]
+      "
+    >
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-semibold text-black dark:text-white">
+          Lane Details
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6"
+          >
+            {/* LANE NAME */}
+            <FormField
+              disabled={isLoading}
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Lane Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. Qualified Leads"
+                      className="h-11 rounded-lg"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* ACTION */}
+            <div className="flex justify-end pt-2">
+              <Button
+                className="h-10 px-6 rounded-lg"
+                disabled={isLoading}
+                type="submit"
+              >
+                {form.formState.isSubmitting ? <Loading /> : "Save Lane"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default LaneForm;

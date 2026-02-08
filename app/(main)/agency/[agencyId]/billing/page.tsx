@@ -42,18 +42,28 @@ const Page = async ({ params }: Props) => {
     (c) => c.priceId === agencySubscription?.Subscription?.priceId
   );
 
-  const charges = await stripe.charges.list({
-    limit: 50,
-    customer: agencySubscription?.customerId,
-  });
-
-  const allCharges = charges.data.map((charge) => ({
-    description: charge.description,
-    id: charge.id,
-    date: new Date(charge.created * 1000).toLocaleString(),
-    status: "Paid",
-    amount: charge.amount / 100,
-  }));
+  let allCharges: {
+    description: string;
+    id: string;
+    date: string;
+    status: string;
+    amount: number;
+  }[] = [];  
+    
+  if (agencySubscription?.customerId) {
+    const charges = await stripe.charges.list({
+      limit: 50,
+      customer: agencySubscription.customerId,
+    });
+    
+    allCharges = charges.data.map((charge) => ({
+      description: charge.description || "", // Stripe charge description can be null
+      id: charge.id,
+      date: new Date(charge.created * 1000).toLocaleString(),
+      status: "Paid",
+      amount: charge.amount / 100,
+    }));
+  }
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-6 pb-16">

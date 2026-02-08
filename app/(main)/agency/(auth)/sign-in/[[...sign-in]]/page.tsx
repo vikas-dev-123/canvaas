@@ -24,15 +24,38 @@ export default function SignInPage() {
     setError("");
 
     try {
+      // First attempt to sign in
       const res = await signIn.create({
         identifier: email,
         password,
       });
 
-      await setActive({ session: res.createdSessionId });
-      router.push("/");
+      // If sign in is complete, set active session
+      if (res.status === "complete") {
+        await setActive({ session: res.createdSessionId });
+        router.push("/");
+      } else {
+        // Handle other statuses (like verification required)
+        console.log("Sign in status:", res.status);
+        setError("Please check your email for verification or try again.");
+      }
     } catch (err: any) {
-      setError(err.errors?.[0]?.message ?? "AUTHENTICATION_FAILED");
+      console.error("Sign in error:", err);
+      // Better error handling
+      if (err.errors && err.errors.length > 0) {
+        const firstError = err.errors[0];
+        if (firstError.code === "form_identifier_not_found") {
+          setError("No account found with this email address.");
+        } else if (firstError.code === "form_password_incorrect") {
+          setError("Incorrect password. Please try again.");
+        } else if (firstError.code === "session_unauthorized") {
+          setError("Account requires email verification. Please check your email.");
+        } else {
+          setError(firstError.message || "Authentication failed. Please try again.");
+        }
+      } else {
+        setError("Authentication failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

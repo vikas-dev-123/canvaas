@@ -1,94 +1,182 @@
 "use client";
+
 import { Media } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import Image from "next/image";
 import { Copy, MoreHorizontal, Trash } from "lucide-react";
 import { useToast } from "../ui/use-toast";
 import { deleteMedia, saveActivityLogsNotification } from "@/lib/queries";
+import clsx from "clsx";
 
 type Props = {
-    file: Media;
+  file: Media;
 };
 
 const MediaCard = ({ file }: Props) => {
-    const { toast } = useToast();
-    const [loading, setLoading] = useState(false);
-    const router = useRouter();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-    return (
-        <AlertDialog>
-            <DropdownMenu>
-                <article className="w-full border rounded-lg bg-slate-900">
-                    <div className="relative w-full h-40">
-                        <Image src={file.link} alt="preview image" fill className="object-cover rounded-lg" />
-                    </div>
-                    <p className="opacity-0 h-0 w-0">{file.name}</p>
-                    <div className="p-4 relative">
-                        <p className="text-muted-foreground">{file.createdAt.toDateString()}</p>
-                        <p>{file.name}</p>
-                        <div className="absolute top-4 right-4 p-[1px] cursor-pointer">
-                            <DropdownMenuTrigger>
-                                <MoreHorizontal />
-                            </DropdownMenuTrigger>
-                        </div>
-                    </div>
-                    <DropdownMenuContent>
-                        <DropdownMenuLabel>Menu</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            className="flex gap-2"
-                            onClick={() => {
-                                navigator.clipboard.writeText(file.link);
-                                toast({
-                                    title: "Copied To Clipboard",
-                                });
-                            }}
-                        >
-                            <Copy size={15} /> Copy Image Link
-                        </DropdownMenuItem>
-                        <AlertDialogTrigger asChild>
-                            <DropdownMenuItem className="flex gap-2">
-                                <Trash size={15} /> Delete File
-                            </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                    </DropdownMenuContent>
-                </article>
-            </DropdownMenu>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle className="text-left">Are you absolute sure?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-left">Are you sure you want to delete this file? All subaccount using this file will no longer have access to it!</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="flex items-center">
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                        disabled={loading}
-                        className="bg-destructive hover:bg-destructive"
-                        onClick={async () => {
-                            setLoading(true);
-                            const response = await deleteMedia(file.id);
-                            await saveActivityLogsNotification({
-                                agencyId: undefined,
-                                description: `Delete a media file | ${file.name}`,
-                                subAccountId: response.subAccountId,
-                            });
-                            toast({
-                                title: "Deleted File",
-                                description: "Successfully deleted the file",
-                            });
-                            setLoading(false);
-                            router.refresh();
-                        }}
-                    >
-                        Delete
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
+  return (
+    <AlertDialog>
+      <DropdownMenu>
+        <article
+          className="
+            group relative
+            w-full rounded-2xl
+            border border-neutral-200 dark:border-neutral-800
+            bg-white dark:bg-[#101010]
+            overflow-hidden
+            transition-all
+            hover:shadow-[0_20px_40px_-20px_rgba(0,0,0,0.8)]
+          "
+        >
+          {/* IMAGE */}
+          <div className="relative w-full h-40 bg-neutral-100 dark:bg-neutral-900">
+            <Image
+              src={file.link}
+              alt={file.name}
+              fill
+              className="
+                object-cover
+                transition-transform duration-300
+                group-hover:scale-[1.03]
+              "
+            />
+
+            {/* TOP ACTION */}
+            <div
+              className="
+                absolute top-3 right-3
+                opacity-0 group-hover:opacity-100
+                transition-opacity
+              "
+            >
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="
+                    h-9 w-9 rounded-full
+                    bg-black/60 text-white
+                    flex items-center justify-center
+                    hover:bg-black
+                  "
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+              </DropdownMenuTrigger>
+            </div>
+          </div>
+
+          {/* CONTENT */}
+          <div className="p-4 space-y-1">
+            <p className="text-xs text-neutral-500">
+              {file.createdAt.toDateString()}
+            </p>
+
+            <p
+              className="
+                text-sm font-medium
+                text-black dark:text-white
+                truncate
+              "
+              title={file.name}
+            >
+              {file.name}
+            </p>
+          </div>
+
+          {/* MENU */}
+          <DropdownMenuContent
+            align="end"
+            className="
+              bg-white dark:bg-[#101010]
+              border border-neutral-200 dark:border-neutral-800
+            "
+          >
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              className="flex gap-2"
+              onClick={() => {
+                navigator.clipboard.writeText(file.link);
+                toast({ title: "Copied link to clipboard" });
+              }}
+            >
+              <Copy size={14} /> Copy Link
+            </DropdownMenuItem>
+
+            <AlertDialogTrigger asChild>
+              <DropdownMenuItem className="flex gap-2 text-red-600">
+                <Trash size={14} /> Delete
+              </DropdownMenuItem>
+            </AlertDialogTrigger>
+          </DropdownMenuContent>
+        </article>
+      </DropdownMenu>
+
+      {/* DELETE CONFIRM */}
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-left">
+            Delete Media File?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-left">
+            This action cannot be undone. Any funnel or page using this file
+            will lose access.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-700"
+            onClick={async () => {
+              setLoading(true);
+              const response = await deleteMedia(file.id);
+
+              await saveActivityLogsNotification({
+                agencyId: undefined,
+                description: `Deleted media | ${file.name}`,
+                subAccountId: response.subAccountId,
+              });
+
+              toast({
+                title: "Media deleted",
+                description: "The file has been removed successfully",
+              });
+
+              setLoading(false);
+              router.refresh();
+            }}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 };
 
 export default MediaCard;

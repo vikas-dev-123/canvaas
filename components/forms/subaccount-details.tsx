@@ -20,7 +20,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "../ui/form";
 import FileUpload from "../global/file-upload";
 import { Input } from "../ui/input";
@@ -48,14 +47,12 @@ const formSchema = z.object({
 interface SubAccountDetailsProps {
   agencyDetails: Agency;
   details?: Partial<SubAccount>;
-  userId: string;
   userName: string;
 }
 
 const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
   details,
   agencyDetails,
-  userId,
   userName,
 }) => {
   const { toast } = useToast();
@@ -77,21 +74,19 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
     },
   });
 
+  useEffect(() => {
+    if (details) form.reset(details);
+  }, [details, form]);
+
+  const isLoading = form.formState.isSubmitting;
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       const response = await upsertSubAccount({
-        id: details?.id ? details.id : v4(),
-        address: values.address,
-        subAccountLogo: values.subAccountLogo,
-        city: values.city,
-        companyPhone: values.companyPhone,
-        country: values.country,
-        name: values.name,
-        state: values.state,
-        zipCode: values.zipCode,
+        id: details?.id ?? v4(),
+        ...values,
         createdAt: new Date(),
         updatedAt: new Date(),
-        companyEmail: values.companyEmail,
         agencyId: agencyDetails.id,
         connectAccountId: "",
         goal: 5000,
@@ -100,14 +95,14 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       if (response) {
         await saveActivityLogsNotification({
           agencyId: response.agencyId ?? null,
-          description: `${userName} | updated sub account | ${response.name ?? ''}`,
+          description: `${userName} updated sub account • ${response.name}`,
           subAccountId: response.id,
         });
       }
 
       toast({
-        title: "Subaccount saved",
-        description: "Sub account details saved successfully.",
+        title: "Saved successfully",
+        description: "Sub account information updated.",
       });
 
       setClose();
@@ -115,34 +110,29 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
     } catch {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Could not save sub account details.",
+        title: "Save failed",
+        description: "Unable to save sub account details.",
       });
     }
   }
 
-  useEffect(() => {
-    if (details) form.reset(details);
-  }, [details, form]);
-
-  const isLoading = form.formState.isSubmitting;
-
   return (
     <Card
       className="
-        w-full
-        bg-white dark:bg-[#101010]
-        border border-neutral-200 dark:border-neutral-800
+        w-full max-w-3xl mx-auto
         rounded-2xl
-        shadow-[0_24px_48px_-20px_rgba(0,0,0,0.8)]
+        border border-neutral-200 dark:border-neutral-800
+        bg-white dark:bg-[#0f0f0f]
+        shadow-[0_20px_40px_-20px_rgba(0,0,0,0.8)]
       "
     >
-      <CardHeader>
-        <CardTitle className="text-2xl text-black dark:text-white">
-          Sub_Account_Profile
+      {/* HEADER */}
+      <CardHeader className="pb-6">
+        <CardTitle className="text-2xl font-semibold">
+          Sub Account Setup
         </CardTitle>
-        <CardDescription className="text-neutral-500">
-          Configure business & identity details
+        <CardDescription>
+          Manage business identity and contact details
         </CardDescription>
       </CardHeader>
 
@@ -150,178 +140,154 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-5"
+            className="space-y-8"
           >
             {/* LOGO */}
-            <FormField
-              disabled={isLoading}
-              control={form.control}
-              name="subAccountLogo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                    Account_Logo
-                  </FormLabel>
-                  <FormControl>
-                    <FileUpload
-                      apiEndpoint="subaccountLogo"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <section className="space-y-2">
+              <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Branding
+              </h3>
 
-            {/* NAME + EMAIL */}
-            <div className="grid md:grid-cols-2 gap-4">
               <FormField
                 disabled={isLoading}
                 control={form.control}
-                name="name"
+                name="subAccountLogo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                      Account_Name
-                    </FormLabel>
                     <FormControl>
-                      <Input
-                        required
-                        placeholder="Sub account name"
-                        className="bg-transparent border-neutral-300 dark:border-neutral-700"
-                        {...field}
+                      <FileUpload
+                        apiEndpoint="subaccountLogo"
+                        value={field.value}
+                        onChange={field.onChange}
                       />
                     </FormControl>
                   </FormItem>
                 )}
               />
+            </section>
 
-              <FormField
-                disabled={isLoading}
-                control={form.control}
-                name="companyEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                      Account_Email
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Email"
-                        className="bg-transparent border-neutral-300 dark:border-neutral-700"
-                        {...field}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* BASIC INFO */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Business Information
+              </h3>
 
-            {/* PHONE */}
-            <FormField
-              disabled={isLoading}
-              control={form.control}
-              name="companyPhone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                    Phone_Number
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      required
-                      placeholder="Phone"
-                      className="bg-transparent border-neutral-300 dark:border-neutral-700"
-                      {...field}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* ADDRESS */}
-            <FormField
-              disabled={isLoading}
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                    Address
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      required
-                      placeholder="Street address"
-                      className="bg-transparent border-neutral-300 dark:border-neutral-700"
-                      {...field}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* CITY / STATE / ZIP */}
-            <div className="grid md:grid-cols-3 gap-4">
-              {["city", "state", "zipCode"].map((key) => (
+              <div className="grid md:grid-cols-2 gap-4">
                 <FormField
-                  key={key}
                   disabled={isLoading}
                   control={form.control}
-                  name={key as any}
+                  name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                        {key.toUpperCase()}
-                      </FormLabel>
+                      <FormLabel>Account Name</FormLabel>
                       <FormControl>
-                        <Input
-                          required
-                          className="bg-transparent border-neutral-300 dark:border-neutral-700"
-                          {...field}
-                        />
+                        <Input placeholder="Company name" {...field} />
                       </FormControl>
                     </FormItem>
                   )}
                 />
-              ))}
+
+                <FormField
+                  disabled={isLoading}
+                  control={form.control}
+                  name="companyEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="business@email.com" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                disabled={isLoading}
+                control={form.control}
+                name="companyPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+91 98765 43210" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </section>
+
+            {/* ADDRESS */}
+            <section className="space-y-4">
+              <h3 className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Address
+              </h3>
+
+              <FormField
+                disabled={isLoading}
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="123 Main Street" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid md:grid-cols-3 gap-4">
+                {["city", "state", "zipCode"].map((key) => (
+                  <FormField
+                    key={key}
+                    disabled={isLoading}
+                    control={form.control}
+                    name={key as any}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {key === "zipCode" ? "ZIP" : key}
+                        </FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
+
+              <FormField
+                disabled={isLoading}
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </section>
+
+            {/* ACTION */}
+            <div className="pt-4">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="
+                  w-full h-11 rounded-xl
+                  bg-black text-white
+                  dark:bg-white dark:text-black
+                  hover:opacity-90
+                "
+              >
+                {isLoading ? <Loading /> : "Save changes"}
+              </Button>
             </div>
-
-            {/* COUNTRY */}
-            <FormField
-              disabled={isLoading}
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-neutral-600 dark:text-neutral-400">
-                    Country
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      required
-                      className="bg-transparent border-neutral-300 dark:border-neutral-700"
-                      {...field}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* SUBMIT */}
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="
-                w-full h-11 rounded-xl
-                bg-black text-white
-                dark:bg-white dark:text-black
-                hover:opacity-90
-              "
-            >
-              {isLoading ? <Loading /> : "Save_Sub_Account"}
-            </Button>
           </form>
         </Form>
       </CardContent>

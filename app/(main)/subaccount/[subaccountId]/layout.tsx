@@ -1,4 +1,5 @@
 import { ChildrenProps } from "@/@types";
+import BlurPage from "@/components/global/blur-page";
 import InfoBar from "@/components/global/infobar";
 import Sidebar from "@/components/sidebar";
 import Unauthorized from "@/components/unauthorized";
@@ -47,7 +48,11 @@ const Layout = async ({ children, params }: Props) => {
             <Sidebar id={params.subaccountId} type="subaccount" />
             <div className="md:pl-[300px]">
                 <InfoBar notifications={notifications} role={user.privateMetadata.role as string} subAccountId={params.subaccountId as string} />
-                <div className="relative">{children}</div>
+                <div className="relative">
+                    <BlurPage>
+                         {children} 
+                    </BlurPage>
+                    </div>
             </div>
         </div>
     );

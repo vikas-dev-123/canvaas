@@ -111,11 +111,44 @@ const AgencyDetails = ({ data }: Props) => {
             throw new Error("Failed to initialize user");
           }
           
-          // Note: CustomerId in Agency model is likely a Stripe customer ID
-          // which will be created during subscription process
-          customerId = ""; // Default to empty string for new agencies
+          // Create a Stripe customer for the new agency
+          const customerResponse = await fetch("/api/stripe/create-customer", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: form.getValues().companyEmail,
+              name: form.getValues().name,
+              shipping: {
+                name: form.getValues().name,
+                address: {
+                  city: form.getValues().city,
+                  state: form.getValues().state,
+                  country: form.getValues().country,
+                  postal_code: form.getValues().zipCode,
+                  line1: form.getValues().address,
+                },
+              },
+              address: {
+                city: form.getValues().city,
+                state: form.getValues().state,
+                country: form.getValues().country,
+                postal_code: form.getValues().zipCode,
+                line1: form.getValues().address,
+              },
+            }),
+          });
+          
+          if (!customerResponse.ok) {
+            const errorData = await customerResponse.json();
+            throw new Error(errorData.message || "Failed to create customer in Stripe");
+          }
+          
+          const { customerId: stripeCustomerId } = await customerResponse.json();
+          customerId = stripeCustomerId;
         } catch (error) {
-          console.error("Error initializing user:", error);
+          console.error("Error initializing user or creating customer:", error);
           throw error;
         }
       } else if (data) {
