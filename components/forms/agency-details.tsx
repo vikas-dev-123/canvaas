@@ -1,5 +1,5 @@
 "use client";
-import { Agency } from "@prisma/client";
+import { Agency, Role } from "@prisma/client";
 import React, { useEffect, useState } from "react";
 import { useToast } from "../ui/use-toast";
 import { useRouter } from "next/navigation";
@@ -102,7 +102,7 @@ const AgencyDetails = ({ data }: Props) => {
         const bodyData = {
           email: form.getValues().companyEmail,
           name: form.getValues().name,
-          role: "AGENCY_OWNER", // Set proper role for agency owner
+          role: Role.AGENCY_OWNER, // Set proper role for agency owner
         };
         
         try {
