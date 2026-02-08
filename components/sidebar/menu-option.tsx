@@ -231,7 +231,6 @@ const MenuOptions = ({
                         >
                           <SubAccountDetails
                             agencyDetails={user.Agency as Agency}
-                            userId={user.id}
                             userName={user.name}
                           />
                         </CustomModal>
