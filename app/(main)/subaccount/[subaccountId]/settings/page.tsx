@@ -47,7 +47,7 @@ const Page = async ({ params }: Props) => {
     return (
         <BlurPage>
             <div className="flex lg:flex-row flex-col gap-4">
-                <SubAccountDetails agencyDetails={agencyDetails} details={subAccount} userId={userDetails.id} userName={userDetails.name} />
+                <SubAccountDetails agencyDetails={agencyDetails} details={subAccount} userName={userDetails.name} />
                 <UserDetails type="subaccount" id={params.subaccountId} subAccounts={subAccounts} userData={userDetails} />
             </div>
         </BlurPage>
