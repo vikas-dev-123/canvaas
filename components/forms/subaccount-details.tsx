@@ -94,7 +94,7 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
 
       if (response) {
         await saveActivityLogsNotification({
-          agencyId: response.agencyId ?? null,
+          agencyId: response.agencyId || undefined,
           description: `${userName} updated sub account • ${response.name}`,
           subAccountId: response.id,
         });
@@ -137,7 +137,9 @@ const SubAccountDetails: React.FC<SubAccountDetailsProps> = ({
       </CardHeader>
 
       <CardContent>
-        <Form {...form}>
+        <Form {...form}
+        
+        >
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-8"

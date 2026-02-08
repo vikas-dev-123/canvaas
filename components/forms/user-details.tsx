@@ -116,7 +116,35 @@ const UserDetails = ({ id, type, userData, subAccounts }: Props) => {
     if (userData) form.reset(userData);
   }, [userData, data, form]);
 
-  /* LOGIC UNCHANGED */
+  const onSubmit = async (values: z.infer<typeof userDataSchema>) => {
+    try {
+      if (!id) return;
+      
+      const updatedUser = await updateUser(id, values);
+      
+      if (updatedUser) {
+        await saveActivityLogsNotification({
+          agencyId: authUserData?.Agency?.id,
+          description: `Updated user details • ${updatedUser.name}`,
+          subAccountId: type === "subaccount" ? id : undefined,
+        });
+
+        toast({
+          title: "Success",
+          description: "User details updated successfully.",
+        });
+
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update user details.",
+      });
+    }
+  };
 
   return (
     <Card
@@ -138,7 +166,7 @@ const UserDetails = ({ id, type, userData, subAccounts }: Props) => {
 
       <CardContent className="space-y-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(() => {})} className="space-y-5">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             {/* AVATAR */}
             <FormField
               disabled={form.formState.isSubmitting}

@@ -60,7 +60,7 @@ export const getAuthUserDetails = async () => {
     return userData;
 };
 
-export const saveActivityLogsNotification = async ({ agencyId, description, subAccountId }: { agencyId?: string; description?: string; subAccountId?: string }) => {
+export const saveActivityLogsNotification = async ({ agencyId, description, subAccountId }: { agencyId?: string | null; description?: string; subAccountId?: string }) => {
     const authUser = await currentUser();
     let userData;
     if (!authUser) {
@@ -88,9 +88,10 @@ export const saveActivityLogsNotification = async ({ agencyId, description, subA
     }
 
     let foundAgencyId = agencyId;
-    if (!foundAgencyId) {
+    if (!foundAgencyId || foundAgencyId === null) {
         if (!subAccountId) {
-            throw new Error("You need to provide at least an agency Id or subAccount id");
+            console.log("No agencyId or subAccountId provided, skipping notification");
+            return;
         }
 
         const response = await db.subAccount.findUnique({
@@ -142,18 +143,18 @@ export const saveActivityLogsNotification = async ({ agencyId, description, subA
     }
 };
 
-export const updateUser = async (user: Partial<User>) => {
+export const updateUser = async (id: string, userData: Partial<User>) => {
     const response = await db.user.update({
         where: {
-            email: user.email,
+            id: id,
         },
         data: {
-            ...user,
+            ...userData,
         },
     });
     await clerkClient().users.updateUserMetadata(response.id, {
         publicMetadata: {
-            role: user.role || "SUBACCOUNT_USER",
+            role: userData.role || "SUBACCOUNT_USER",
         },
     });
 
