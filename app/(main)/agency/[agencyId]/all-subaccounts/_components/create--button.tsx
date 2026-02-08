@@ -63,7 +63,6 @@ const CreateSubAccountButton = ({
           >
             <SubAccountDetails
               agencyDetails={agencyDetails}
-              userId={user.id}
               userName={user.name}
             />
           </CustomModal>
