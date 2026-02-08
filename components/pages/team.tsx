@@ -14,7 +14,7 @@ const TeamSection = () => {
             The Founders
           </h2>
           <h3 className="text-5xl md:text-8xl font-black text-[#1a1a1a] dark:text-white tracking-tighter leading-none">
-            The Brother's. <br />
+            The Brother&apos;s <br />
             <span className="text-slate-200 dark:text-white/20">
               Vision 
             </span>
