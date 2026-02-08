@@ -93,7 +93,92 @@ const AgencyDetails = ({ data }: Props) => {
     if (data) form.reset(data);
   }, [data, form]);
 
-  /* LOGIC UNCHANGED */
+  const onSubmit = async (values: z.infer<typeof FormSchema>) => {
+    try {
+      let customerId: string = "";
+
+      if (!data?.id) {
+        // Initialize the user first
+        const bodyData = {
+          email: form.getValues().companyEmail,
+          name: form.getValues().name,
+          role: "AGENCY_OWNER", // Set proper role for agency owner
+        };
+        
+        try {
+          const newUserData = await initUser(bodyData);
+          if (!newUserData) {
+            throw new Error("Failed to initialize user");
+          }
+          
+          // Note: CustomerId in Agency model is likely a Stripe customer ID
+          // which will be created during subscription process
+          customerId = ""; // Default to empty string for new agencies
+        } catch (error) {
+          console.error("Error initializing user:", error);
+          throw error;
+        }
+      } else {
+        // For existing agency, preserve the current customerId
+        customerId = data.customerId;
+      }
+
+      const response = await upsertAgency({
+        id: data?.id || v4(),
+        customerId: customerId || "",
+        connectAccountId: "",
+        goal: 5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...values,
+      });
+
+      if (response) {
+        await saveActivityLogsNotification({
+          agencyId: response.id,
+          description: `Updated agency information | ${response.name}`,
+          subAccountId: undefined,
+        });
+      } else {
+        throw new Error("Failed to create or update agency");
+      }
+
+      toast({
+        title: "Agency Updated",
+        description: "Successfully saved agency information.",
+      });
+
+      router.refresh();
+    } catch (error) {
+      console.log(error);
+      toast({
+        variant: "destructive",
+        title: "Oppse!",
+        description: "Could not save agency information",
+      });
+    }
+  };
+
+  const handleDeleteAgency = async () => {
+    if (!data?.id) return;
+    try {
+      setDeletingAgency(true);
+      await deleteAgency(data.id);
+      toast({
+        title: "Agency Deleted",
+        description: "Successfully deleted agency.",
+      });
+      router.push("/");
+    } catch (error) {
+      console.log(error);
+      toast({
+        variant: "destructive",
+        title: "Oppse!",
+        description: "Could not delete agency",
+      });
+    }
+    setDeletingAgency(false);
+  };
 
   return (
     <AlertDialog>
@@ -117,7 +202,7 @@ const AgencyDetails = ({ data }: Props) => {
         <CardContent className="space-y-6">
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(() => {})}
+              onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-5"
             >
               {/* LOGO */}
@@ -345,8 +430,9 @@ const AgencyDetails = ({ data }: Props) => {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleDeleteAgency}
               >
-                Delete
+                {deletingAgency ? <Loading /> : "Delete"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

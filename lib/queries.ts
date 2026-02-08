@@ -293,11 +293,16 @@ export const initUser = async (newUser: Partial<User>) => {
         },
     });
 
-    await clerkClient().users.updateUserMetadata(user.id, {
-        privateMetadata: {
-            role: newUser.role || "SUBACCOUNT_USER",
-        },
-    });
+    try {
+        await clerkClient().users.updateUserMetadata(user.id, {
+            privateMetadata: {
+                role: newUser.role || "SUBACCOUNT_USER",
+            },
+        });
+    } catch (error) {
+        console.log(error);
+        throw new Error("Failed to update user metadata");
+    }
 
     return userData;
 };
@@ -358,6 +363,7 @@ export const upsertAgency = async (agency: Agency, price?: Plan) => {
         return agencyDetails;
     } catch (error) {
         console.log(error);
+        throw new Error("Failed to upsert agency");
     }
 };
 
