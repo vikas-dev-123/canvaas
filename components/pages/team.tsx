@@ -14,9 +14,9 @@ const TeamSection = () => {
             The Founders
           </h2>
           <h3 className="text-5xl md:text-8xl font-black text-[#1a1a1a] dark:text-white tracking-tighter leading-none">
-            Two Brothers. <br />
+            The Brother's. <br />
             <span className="text-slate-200 dark:text-white/20">
-              One Vision.
+              Vision 
             </span>
           </h3>
         </div>
@@ -77,7 +77,7 @@ const TeamSection = () => {
             </h4>
 
             <p className="text-lg text-slate-500 dark:text-slate-400 mb-10 leading-relaxed font-medium">
-              Engineering the foundation that powers the vision. Vikash is
+              Engineering the foundation that powers the vision. Vikas is
               responsible for DAL integrity and global system architecture.
             </p>
           </div>
