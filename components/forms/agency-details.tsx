@@ -118,9 +118,9 @@ const AgencyDetails = ({ data }: Props) => {
           console.error("Error initializing user:", error);
           throw error;
         }
-      } else {
+      } else if (data) {
         // For existing agency, preserve the current customerId
-        customerId = data.customerId;
+        customerId = data.customerId || "";
       }
 
       const response = await upsertAgency({
