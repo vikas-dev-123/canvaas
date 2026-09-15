@@ -1,6 +1,7 @@
 import { addOnProducts, pricingCards } from "@/lib/constant";
 import { db } from "@/lib/db";
-import { stripe } from "@/lib/stripe";
+import { razorpay } from "@/lib/razorpay";
+import { listNormalizedPlans } from "@/lib/razorpay/razorpay-actions";
 import React from "react";
 import PricingCard from "./_components/pricing-card";
 import {
@@ -20,10 +21,10 @@ type Props = {
 };
 
 const Page = async ({ params }: Props) => {
-  const addOns = await stripe.products.list({
-    ids: addOnProducts.map((product) => product.id),
-    expand: ["data.default_price"],
-  });
+  const planPriceIds = pricingCards.map((c) => c.priceId).filter(Boolean);
+  const prices = await listNormalizedPlans(planPriceIds);
+
+  const addOnPlans = await listNormalizedPlans(addOnProducts.map((p) => p.id));
 
   const agencySubscription = await db.agency.findUnique({
     where: { id: params.agencyId },
@@ -31,11 +32,6 @@ const Page = async ({ params }: Props) => {
       customerId: true,
       Subscription: true,
     },
-  });
-
-  const prices = await stripe.prices.list({
-    product: process.env.NEXT_PLURA_PRODUCT_ID,
-    active: true,
   });
 
   const currentPlanDetails = pricingCards.find(
@@ -48,21 +44,25 @@ const Page = async ({ params }: Props) => {
     date: string;
     status: string;
     amount: number;
-  }[] = [];  
-    
+  }[] = [];
+
   if (agencySubscription?.customerId) {
-    const charges = await stripe.charges.list({
-      limit: 50,
-      customer: agencySubscription.customerId,
-    });
-    
-    allCharges = charges.data.map((charge) => ({
-      description: charge.description || "", // Stripe charge description can be null
-      id: charge.id,
-      date: new Date(charge.created * 1000).toLocaleString(),
-      status: "Paid",
-      amount: charge.amount / 100,
-    }));
+    try {
+      const invoices = await razorpay.invoices.all({
+        customer_id: agencySubscription.customerId,
+        count: 50,
+      });
+
+      allCharges = invoices.items.map((invoice: any) => ({
+        description: invoice.description || `Invoice ${invoice.invoice_number || invoice.id}`,
+        id: invoice.id,
+        date: new Date((invoice.paid_at || invoice.created_at) * 1000).toLocaleString(),
+        status: invoice.status === "paid" ? "Paid" : invoice.status,
+        amount: (invoice.amount || 0) / 100,
+      }));
+    } catch (error) {
+      console.log("Could not load Razorpay invoices:", error);
+    }
   }
 
   return (
@@ -85,7 +85,7 @@ const Page = async ({ params }: Props) => {
       <div className="flex flex-col lg:flex-row gap-8">
         <PricingCard
           planExists={agencySubscription?.Subscription?.active === true}
-          prices={prices.data}
+          prices={prices}
           customerId={agencySubscription?.customerId || ""}
           amt={
             agencySubscription?.Subscription?.active
@@ -117,19 +117,13 @@ const Page = async ({ params }: Props) => {
           }
         />
 
-        {addOns.data.map((addOn) => (
+        {addOnPlans.map((addOn) => (
           <PricingCard
             key={addOn.id}
             planExists={agencySubscription?.Subscription?.active === true}
-            prices={prices.data}
+            prices={prices}
             customerId={agencySubscription?.customerId || ""}
-            amt={
-              //@ts-ignore
-              addOn.default_price?.unit_amount
-                ? //@ts-ignore
-                  `₹${addOn.default_price.unit_amount / 100}`
-                : "₹0"
-            }
+            amt={addOn.unit_amount ? `₹${addOn.unit_amount / 100}` : "₹0"}
             buttonCta="Subscribe"
             title="24/7_Priority_Support"
             description="Dedicated operational support channel"
@@ -176,9 +170,9 @@ const Page = async ({ params }: Props) => {
                         "text-emerald-500":
                           charge.status.toLowerCase() === "paid",
                         "text-orange-500":
-                          charge.status.toLowerCase() === "pending",
+                          charge.status.toLowerCase() === "pending" || charge.status.toLowerCase() === "issued",
                         "text-red-500":
-                          charge.status.toLowerCase() === "failed",
+                          charge.status.toLowerCase() === "failed" || charge.status.toLowerCase() === "expired",
                       })}
                     >
                       {charge.status.toUpperCase()}

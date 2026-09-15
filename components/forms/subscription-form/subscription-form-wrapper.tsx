@@ -1,16 +1,10 @@
 "use client";
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
 import { pricingCards } from "@/lib/constant";
 import { useModal } from "@/providers/modal-provider";
-import { Plan } from "@prisma/client";
-import { StripeElementsOptions } from "@stripe/stripe-js";
 import clsx from "clsx";
-import { Elements } from "@stripe/react-stripe-js";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { getStripe } from "@/lib/stripe/stripe-client";
+import { useEffect, useState } from "react";
 import Loading from "@/components/global/loading";
 import SubscriptionForm from ".";
 
@@ -20,66 +14,62 @@ type Props = {
 };
 
 const SubscriptionFormWrapper = ({ customerId, planExists }: Props) => {
-  const { data, setClose } = useModal();
-  const router = useRouter();
+  const { data } = useModal();
 
-  const [selectedPriceId, setSelectedPriceId] = useState<Plan | "">(
+  const [selectedPriceId, setSelectedPriceId] = useState<string>(
     data?.plans?.defaultPriceId || ""
   );
 
   const [subscription, setSubscription] = useState<{
     subscriptionId: string;
-    clientSecret: string;
+    razorpayKeyId: string;
+    prefill: { email?: string; contact?: string };
   }>({
     subscriptionId: "",
-    clientSecret: "",
+    razorpayKeyId: "",
+    prefill: {},
   });
 
-  const options: StripeElementsOptions = useMemo(
-    () => ({
-      clientSecret: subscription.clientSecret,
-      appearance: {
-        theme: "night",
-      },
-    }),
-    [subscription]
-  );
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!selectedPriceId) return;
 
-    const createSecret = async () => {
-      const subscriptionResponse = await fetch(
-        "/api/stripe/create-subscription",
-        {
+    const createSubscription = async () => {
+      setCreating(true);
+      setError("");
+      setSubscription({ subscriptionId: "", razorpayKeyId: "", prefill: {} });
+
+      try {
+        const subscriptionResponse = await fetch("/api/razorpay/create-subscription", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             customerId,
-            priceId: selectedPriceId,
+            planId: selectedPriceId,
           }),
-        }
-      );
-
-      const subscriptionResponseData = await subscriptionResponse.json();
-
-      setSubscription({
-        clientSecret: subscriptionResponseData.clientSecret,
-        subscriptionId: subscriptionResponseData.subscriptionId,
-      });
-
-      if (planExists) {
-        toast({
-          title: "Success",
-          description: "Your plan has been successfully upgraded!",
         });
-        setClose();
-        router.refresh();
+
+        const subscriptionResponseData = await subscriptionResponse.json();
+
+        if (!subscriptionResponse.ok) {
+          setError(subscriptionResponseData.error || "Could not start the subscription.");
+          return;
+        }
+
+        setSubscription({
+          subscriptionId: subscriptionResponseData.subscriptionId,
+          razorpayKeyId: subscriptionResponseData.razorpayKeyId,
+          prefill: subscriptionResponseData.prefill || {},
+        });
+      } finally {
+        setCreating(false);
       }
     };
 
-    createSecret();
-  }, [selectedPriceId, customerId, planExists, router, setClose]);
+    createSubscription();
+  }, [selectedPriceId, customerId]);
 
   return (
     <div className="space-y-6">
@@ -91,7 +81,7 @@ const SubscriptionFormWrapper = ({ customerId, planExists }: Props) => {
           return (
             <Card
               key={price.id}
-              onClick={() => setSelectedPriceId(price.id as Plan)}
+              onClick={() => setSelectedPriceId(price.id)}
               className={clsx(
                 `
                   relative cursor-pointer rounded-xl border
@@ -131,21 +121,26 @@ const SubscriptionFormWrapper = ({ customerId, planExists }: Props) => {
         })}
       </div>
 
+      {error && <p className="text-sm font-mono text-red-500">{error}</p>}
+
       {/* PAYMENT SECTION */}
-      {options.clientSecret && !planExists && (
+      {subscription.subscriptionId && !creating && (
         <div className="space-y-4">
           <h1 className="text-xl font-semibold text-black dark:text-white">
             Payment_Method
           </h1>
 
-          <Elements stripe={getStripe()} options={options}>
-            <SubscriptionForm selectedPriceId={selectedPriceId} />
-          </Elements>
+          <SubscriptionForm
+            subscriptionId={subscription.subscriptionId}
+            razorpayKeyId={subscription.razorpayKeyId}
+            prefill={subscription.prefill}
+            planExists={planExists}
+          />
         </div>
       )}
 
       {/* LOADING */}
-      {!options.clientSecret && selectedPriceId && (
+      {creating && (
         <div className="flex items-center justify-center w-full h-40 rounded-xl
           bg-neutral-50 dark:bg-neutral-900 border
           border-neutral-200 dark:border-neutral-800">

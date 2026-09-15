@@ -1,7 +1,7 @@
 import AgencyDetails from "@/components/forms/agency-details";
 import UserDetails from "@/components/forms/user-details";
 import { getAgencyDetails, getUserDetailsByAuthEmail } from "@/lib/queries";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/auth/getSession";
 
 type Props = {
     params: {
@@ -10,10 +10,10 @@ type Props = {
 };
 
 const Page = async ({ params }: Props) => {
-    const authUser = await currentUser();
-    if (!authUser) return null;
+    const session = await getSession();
+    if (!session) return null;
 
-    const userDetails = await getUserDetailsByAuthEmail(authUser);
+    const userDetails = await getUserDetailsByAuthEmail(session.email);
 
     if (!userDetails) return null;
 

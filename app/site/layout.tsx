@@ -1,15 +1,15 @@
 import Navigation from "@/components/site/navigation";
-import { ClerkProvider } from "@clerk/nextjs";
+import { getSession } from "@/lib/auth/getSession";
 import React from "react";
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+const Layout = async ({ children }: { children: React.ReactNode }) => {
+    const session = await getSession();
+
     return (
-        <ClerkProvider>
-            <main className="h-full">
-                <Navigation />
-                {children}
-            </main>
-        </ClerkProvider>
+        <main className="h-full">
+            <Navigation user={session} />
+            {children}
+        </main>
     );
 };
 

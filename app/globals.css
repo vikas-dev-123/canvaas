@@ -167,3 +167,12 @@ B (255 */
 .error-box {
   @apply p-4 bg-red-50 text-red-600 font-bold text-xs uppercase rounded-xl flex items-center gap-3;
 }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typewriter-cursor {
+  animation: blink 1s step-end infinite;
+}

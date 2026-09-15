@@ -1,7 +1,6 @@
 import { Contact, Lane, Notification, Prisma, Role, Tag, Ticket, User } from "@prisma/client";
 import { _getTicketsWithAllRelations, getAuthUserDetails, getFunnels, getMedia, getPipelineDetails, getTicketsWithTags, getUserPermissions } from "./queries";
 import { db } from "./db";
-import Stripe from "stripe";
 import { z } from "zod";
 
 export type NotificationWithUser =
@@ -61,7 +60,15 @@ export type TicketWithTags = Prisma.PromiseReturnType<typeof getTicketsWithTags>
 
 export type TicketDetails = Prisma.PromiseReturnType<typeof _getTicketsWithAllRelations>;
 
-export type PricesList = Stripe.ApiList<Stripe.Price>;
+// A normalized "price" shape used by the billing UI, populated from Razorpay Plans
+// (`plan.item.amount`/`plan.item.name` mapped onto `unit_amount`/`nickname`).
+export type NormalizedPrice = {
+    id: string;
+    unit_amount: number;
+    nickname: string | null;
+};
+
+export type PricesList = { data: NormalizedPrice[] };
 
 export type FunnelsForSubAccount = Prisma.PromiseReturnType<typeof getFunnels>[0];
 

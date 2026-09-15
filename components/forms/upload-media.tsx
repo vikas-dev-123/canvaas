@@ -149,7 +149,7 @@ const UploadMediaForm = ({ subaccountId }: Props) => {
                       "
                     >
                       <FileUpload
-                        apiEndpoint="subaccountLogo"
+                        apiEndpoint="media"
                         value={field.value}
                         onChange={field.onChange}
                       />

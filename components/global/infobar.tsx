@@ -1,8 +1,8 @@
 "use client";
 
 import { NotificationWithUser } from "@/lib/types";
-import { UserButton } from "@clerk/nextjs";
-import { Bell } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { Card } from "../ui/card";
@@ -26,8 +26,15 @@ type Props = {
 };
 
 const InfoBar = ({ notifications, role, className, subAccountId }: Props) => {
+  const router = useRouter();
   const [allNotifications, setAllNotifications] = useState<NotificationWithUser>(notifications);
   const [showAll, setShowAll] = useState(true);
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/agency/sign-in");
+    router.refresh();
+  };
 
   const handleClick = () => {
     if (!showAll) {
@@ -158,9 +165,13 @@ const InfoBar = ({ notifications, role, className, subAccountId }: Props) => {
         <ModeToggle />
 
         {/* User */}
-        <div className="scale-90">
-          <UserButton />
-        </div>
+        <button
+          onClick={handleLogout}
+          title="Sign out"
+          className="p-2 rounded-full hover:bg-gray-800 transition text-gray-400 hover:text-white"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
 
       </div>
     </div>

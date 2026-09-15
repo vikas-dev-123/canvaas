@@ -64,28 +64,49 @@ enum InvitationStatus {
   PENDING
 }
 
-enum Plan {
-  price_1Ppo69RwpqMc2iheOHp2rbzA
-  price_1Ppo73RwpqMc2ihef4jfoTTc
+enum OtpPurpose {
+  SIGNUP_VERIFY
+  LOGIN_2FA
+  PASSWORD_RESET
 }
- 
+
 
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  avatarUrl    String   @db.Text
-  email        String   @unique
-  role         Role     @default(SUBACCOUNT_USER)
-  agencyId     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String    @id @default(uuid())
+  name            String
+  avatarUrl       String    @db.Text
+  email           String    @unique
+  password        String
+  emailVerifiedAt DateTime?
+  role            Role      @default(SUBACCOUNT_USER)
+  agencyId        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   Agency        Agency?        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   Permissions   Permissions[]
   Ticket        Ticket[]
   Notification  Notification[]
+  OtpCode       OtpCode[]
 
   @@index([agencyId])
+}
+
+model OtpCode {
+  id         String     @id @default(uuid())
+  email      String
+  userId     String?
+  codeHash   String
+  purpose    OtpPurpose
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int        @default(0)
+  createdAt  DateTime   @default(now())
+
+  User User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, purpose])
+  @@index([userId])
 }
 
 model Permissions {
@@ -442,14 +463,14 @@ model Notification {
 
 model Subscription {
   id        String   @id @default(uuid())
-  plan      Plan?
+  plan      String?
   price     String?
   active    Boolean  @default(false)
-  priceId              String
-  customerId           String
-  currentPeriodEndDate DateTime
-  subscritiptionId     String   @unique
-  agencyId             String?  @unique
+  priceId               String
+  customerId            String
+  currentPeriodEndDate  DateTime
+  razorpaySubscriptionId String  @unique
+  agencyId              String? @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

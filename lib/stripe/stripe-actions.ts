@@ -1,52 +1,10 @@
 "use server";
 
-import Stripe from "stripe";
-import { db } from "../db";
+// NOTE: this file now only supports the Stripe Connect marketplace checkout that lets
+// sub-accounts sell their own products through funnels. Canvaas's own subscription
+// billing has moved to Razorpay — see lib/razorpay/*.
+
 import { stripe } from ".";
-import { Plan } from "@prisma/client";
-
-export const subscriptionCreated = async (subscription: Stripe.Subscription, customerId: string) => {
-    try {
-        const agency = await db.agency.findFirst({
-            where: {
-                customerId,
-            },
-            include: {
-                Subscription: true,
-            },
-        });
-
-        if (!agency) {
-            throw new Error("Could not find and agency to upsert the subscription");
-        }
-
-        const data = {
-            active: subscription.status === "active",
-            agencyId: agency.id,
-            customerId,
-            currentPeriodEndDate: new Date(subscription.current_period_end * 1000),
-            //@ts-ignore
-            priceId: subscription.plan.id,
-            subscritiptionId: subscription.id,
-            //@ts-ignore
-            plan: subscription.plan.id as keyof typeof Plan,
-        };
-
-        console.log({ ...subscription });
-
-        const res = await db.subscription.upsert({
-            where: {
-                agencyId: agency.id,
-            },
-            create: data,
-            update: data,
-        });
-
-        console.log(`🟢 Created Subscription for ${subscription.id}`);
-    } catch (error) {
-        console.log("🔴 Error from Create action", error);
-    }
-};
 
 export const getConnectAccountProducts = async (stripeAccount: string) => {
     const products = await stripe.products.list(

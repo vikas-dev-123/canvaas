@@ -27,10 +27,13 @@ import Tune from "@/components/icons/tune";
 import Video from "@/components/icons/video_recorder";
 import Wallet from "@/components/icons/wallet";
 import Warning from "@/components/icons/warning";
+// priceId values are Razorpay Plan IDs (created via the Razorpay dashboard or
+// `razorpay.plans.create(...)`) — replace the placeholders below with real plan IDs
+// before going live. See RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET in your env config.
 export const pricingCards = [
     {
         title: "Starter",
-        description: "Perfect for trying out plura",
+        description: "Perfect for trying out Canvaas",
         price: "Free",
         duration: "",
         highlight: "Key features",
@@ -44,7 +47,7 @@ export const pricingCards = [
         duration: "month",
         highlight: "Key features",
         features: ["Rebilling", "24/7 Support team"],
-        priceId: "price_1So4KtIhbb6nGqcYf1nJu3V3",
+        priceId: "plan_REPLACE_WITH_UNLIMITED_SAAS_PLAN_ID",
     },
     {
         title: "Basic",
@@ -53,11 +56,11 @@ export const pricingCards = [
         duration: "month",
         highlight: "Everything in Starter, plus",
         features: ["Unlimited Sub accounts", "Unlimited Team members"],
-        priceId: "price_1So4IcIhbb6nGqcYi4Z9dSfP",
+        priceId: "plan_REPLACE_WITH_BASIC_PLAN_ID",
     },
 ];
 
-export const addOnProducts = [{ title: "Priority Support", id: "prod_TlbsBEgwjUQr4U" }];
+export const addOnProducts = [{ title: "Priority Support", id: "plan_REPLACE_WITH_PRIORITY_SUPPORT_PLAN_ID" }];
 
 export const icons = [
     {

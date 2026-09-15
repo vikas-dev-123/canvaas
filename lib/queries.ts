@@ -1,15 +1,15 @@
 "use server";
 
-import type { User as AuthUser } from "@clerk/nextjs/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { clerkClient } from "@clerk/nextjs/server";
-import { Agency, Funnel, Lane, Plan, Prisma, Role, SubAccount, Tag, Ticket, User } from "@prisma/client";
+import { Agency, Funnel, Lane, Prisma, Role, SubAccount, Tag, Ticket, User } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { v4 } from "uuid";
 import { db } from "./db";
 import { CreateFunnelFormSchema, CreateMediaType, CreatePipeLineType, UpsertFunnelPage } from "./types";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { getSession } from "./auth/getSession";
+import { sendInviteEmail } from "./auth/mailer";
+import { getOrSetCache, invalidateCache } from "./cache";
 
 export const getUser = async (id: string) => {
     const user = await db.user.findUnique({
@@ -22,25 +22,20 @@ export const getUser = async (id: string) => {
 };
 
 export const deleteUser = async (userId: string) => {
-    await clerkClient().users.updateUserMetadata(userId, {
-        privateMetadata: {
-            role: undefined,
-        },
-    });
     const deletedUser = await db.user.delete({ where: { id: userId } });
     return deletedUser;
 };
 
 export const getAuthUserDetails = async () => {
-    const user = await currentUser();
+    const session = await getSession();
 
-    if (!user) {
+    if (!session) {
         return;
     }
 
     const userData = await db.user.findUnique({
         where: {
-            email: user.emailAddresses[0].emailAddress,
+            id: session.userId,
         },
         include: {
             Agency: {
@@ -61,9 +56,9 @@ export const getAuthUserDetails = async () => {
 };
 
 export const saveActivityLogsNotification = async ({ agencyId, description, subAccountId }: { agencyId?: string | null; description?: string; subAccountId?: string }) => {
-    const authUser = await currentUser();
+    const session = await getSession();
     let userData;
-    if (!authUser) {
+    if (!session) {
         const response = await db.user.findFirst({
             where: {
                 Agency: {
@@ -78,7 +73,7 @@ export const saveActivityLogsNotification = async ({ agencyId, description, subA
         }
     } else {
         userData = await db.user.findUnique({
-            where: { email: authUser?.emailAddresses[0].emailAddress },
+            where: { id: session.userId },
         });
     }
 
@@ -152,11 +147,6 @@ export const updateUser = async (id: string, userData: Partial<User>) => {
             ...userData,
         },
     });
-    await clerkClient().users.updateUserMetadata(response.id, {
-        publicMetadata: {
-            role: userData.role || "SUBACCOUNT_USER",
-        },
-    });
 
     return response;
 };
@@ -189,63 +179,50 @@ export const createTeamUser = async (user: User) => {
 };
 
 export const verifyAndAcceptInvitation = async () => {
-    const user = await currentUser();
+    const session = await getSession();
 
-    if (!user) {
-        redirect("/sign-in");
+    if (!session) {
+        redirect("/agency/sign-in");
     }
+
     const invitationExists = await db.invitation.findUnique({
         where: {
-            email: user.emailAddresses[0].emailAddress,
+            email: session.email,
             status: "PENDING",
         },
     });
 
     if (invitationExists) {
-        const exitsUser = await getAuthUserDetails();
-
-        if (exitsUser) {
-            return exitsUser.agencyId;
-        }
-
-        const userDetails = await createTeamUser({
-            email: invitationExists.email,
-            agencyId: invitationExists.agencyId,
-            avatarUrl: user.imageUrl,
-            id: user.id,
-            name: `${user.firstName} ${user.lastName}`,
-            role: invitationExists.role,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+        // The user row already exists (created at sign-up) — join them to the inviting agency.
+        const userDetails = await db.user.update({
+            where: { email: invitationExists.email },
+            data: {
+                agencyId: invitationExists.agencyId,
+                role: invitationExists.role,
+            },
         });
+
         await saveActivityLogsNotification({
             agencyId: invitationExists?.agencyId,
             description: "Joined",
             subAccountId: undefined,
         });
-        if (userDetails) {
-            await clerkClient().users.updateUserMetadata(user.id, {
-                privateMetadata: {
-                    role: userDetails.role || "SUBACCOUNT_USER",
-                },
-            });
-            await db.invitation.delete({
-                where: {
-                    email: userDetails.email,
-                },
-            });
-            return userDetails.agencyId;
-        } else {
-            return null;
-        }
-    } else {
-        const agency = await db.user.findUnique({
+
+        await db.invitation.delete({
             where: {
-                email: user.emailAddresses[0].emailAddress,
+                email: userDetails.email,
             },
         });
 
-        return agency ? agency.agencyId : null;
+        return userDetails.agencyId;
+    } else {
+        const user = await db.user.findUnique({
+            where: {
+                id: session.userId,
+            },
+        });
+
+        return user ? user.agencyId : null;
     }
 };
 
@@ -254,6 +231,7 @@ export const updateAgencyDetails = async (agencyId: string, agencyDetails: Parti
         where: { id: agencyId },
         data: { ...agencyDetails },
     });
+    await invalidateCache(`agency:full:${agencyId}`);
     return response;
 };
 
@@ -273,42 +251,27 @@ export const deleteAgency = async (agencyId: string) => {
             id: agencyId,
         },
     });
+    await invalidateCache(`agency:full:${agencyId}`);
     return response;
 };
 
 export const initUser = async (newUser: Partial<User>) => {
-    const user = await currentUser();
-    if (!user) return;
+    const session = await getSession();
+    if (!session) return;
 
-    const userData = await db.user.upsert({
+    const userData = await db.user.update({
         where: {
-            email: user.emailAddresses[0].emailAddress,
+            id: session.userId,
         },
-        update: newUser,
-        create: {
-            id: user.id,
-            avatarUrl: user.imageUrl,
-            email: user.emailAddresses[0].emailAddress,
-            name: `${user.firstName} ${user.lastName}`,
-            role: newUser.role || "SUBACCOUNT_USER",
+        data: {
+            ...newUser,
         },
     });
-
-    try {
-        await clerkClient().users.updateUserMetadata(user.id, {
-            privateMetadata: {
-                role: newUser.role || "SUBACCOUNT_USER",
-            },
-        });
-    } catch (error) {
-        console.log(error);
-        throw new Error("Failed to update user metadata");
-    }
 
     return userData;
 };
 
-export const upsertAgency = async (agency: Agency, price?: Plan) => {
+export const upsertAgency = async (agency: Agency, price?: string) => {
     if (!agency.companyEmail) return null;
 
     try {
@@ -361,6 +324,7 @@ export const upsertAgency = async (agency: Agency, price?: Plan) => {
             },
         });
 
+        await invalidateCache(`agency:full:${agencyDetails.id}`);
         return agencyDetails;
     } catch (error) {
         console.log(error);
@@ -467,14 +431,15 @@ export const upsertSubAccount = async (subAccount: SubAccount) => {
         },
     });
 
+    await invalidateCache(`subaccount:dashboard:${response.id}`, `agency:full:${subAccount.agencyId}`);
     return response;
 };
 
-export const getUserDetailsByAuthEmail = async (authEmail: AuthUser) => {
+export const getUserDetailsByAuthEmail = async (email: string) => {
     try {
         const response = await db.user.findUnique({
             where: {
-                email: authEmail.emailAddresses[0].emailAddress,
+                email,
             },
         });
 
@@ -509,50 +474,53 @@ export const getSubAccountDetails = async (subaccountId: string) => {
 
 // Simplified query functions for dashboard pages
 export const getSubAccountDashboardData = async (subaccountId: string) => {
-    const [subAccount, funnels, media, contacts, tickets] = await Promise.all([
-        db.subAccount.findUnique({
-            where: { id: subaccountId },
-            include: {
-                Agency: true,
-            },
-        }),
-        db.funnel.findMany({
-            where: { subAccountId: subaccountId },
-            include: {
-                FunnelPages: true,
-            },
-        }),
-        db.media.findMany({
-            where: { subAccountId: subaccountId },
-        }),
-        db.contact.findMany({
-            where: { subAccountId: subaccountId },
-        }),
-        db.ticket.findMany({
-            where: {
-                Lane: {
-                    Pipeline: {
-                        subAccountId: subaccountId,
+    return getOrSetCache(`subaccount:dashboard:${subaccountId}`, 60, async () => {
+        const [subAccount, funnels, media, contacts, tickets] = await Promise.all([
+            db.subAccount.findUnique({
+                where: { id: subaccountId },
+                include: {
+                    Agency: true,
+                },
+            }),
+            db.funnel.findMany({
+                where: { subAccountId: subaccountId },
+                include: {
+                    FunnelPages: true,
+                },
+            }),
+            db.media.findMany({
+                where: { subAccountId: subaccountId },
+            }),
+            db.contact.findMany({
+                where: { subAccountId: subaccountId },
+            }),
+            db.ticket.findMany({
+                where: {
+                    Lane: {
+                        Pipeline: {
+                            subAccountId: subaccountId,
+                        },
                     },
                 },
-            },
-            include: {
-                Assigned: true,
-                Customer: true,
-            },
-        }),
-    ]);
+                include: {
+                    Assigned: true,
+                    Customer: true,
+                },
+            }),
+        ]);
 
-    return {
-        subAccount,
-        funnels,
-        media,
-        contacts,
-        tickets,
-    };
+        return {
+            subAccount,
+            funnels,
+            media,
+            contacts,
+            tickets,
+        };
+    });
 };
 
 export const getAgencyWithAllData = async (agencyId: string) => {
+  return getOrSetCache(`agency:full:${agencyId}`, 60, async () => {
     const response = await db.agency.findUnique({
         where: { id: agencyId },
         include: {
@@ -595,6 +563,7 @@ export const getAgencyWithAllData = async (agencyId: string) => {
     });
 
     return response;
+  });
 };
 
 export const deleteSubAccount = async (subaccountId: string) => {
@@ -604,6 +573,7 @@ export const deleteSubAccount = async (subaccountId: string) => {
         },
     });
 
+    await invalidateCache(`subaccount:dashboard:${subaccountId}`, `agency:full:${response.agencyId}`);
     return response;
 };
 
@@ -617,14 +587,8 @@ export const sendInvitation = async (role: Role, email: string, agencyId: string
     });
 
     try {
-        await clerkClient().invitations.createInvitation({
-            emailAddress: email,
-            redirectUrl: process.env.NEXT_PUBLIC_URL,
-            publicMetadata: {
-                throwDeprecation: true,
-                role,
-            },
-        });
+        const agency = await db.agency.findUnique({ where: { id: agencyId } });
+        await sendInviteEmail(email, agency?.name || "your agency");
     } catch (err) {
         console.log(err);
         throw err;
@@ -745,6 +709,7 @@ export const upsertFunnel = async (subaccountId: string, funnel: z.infer<typeof 
         },
     });
 
+    await invalidateCache(`funnel:${response.id}`, `funnels:${subaccountId}`);
     return response;
 };
 
@@ -983,31 +948,31 @@ export const upsertContact = async (contact: Prisma.ContactUncheckedCreateInput)
 };
 
 export const getFunnels = async (subaccountId: string) => {
-    const response = await db.funnel.findMany({
-        where: {
-            subAccountId: subaccountId,
-        },
-        include: {
-            FunnelPages: true,
-        },
+    return getOrSetCache(`funnels:${subaccountId}`, 60, async () => {
+        return db.funnel.findMany({
+            where: {
+                subAccountId: subaccountId,
+            },
+            include: {
+                FunnelPages: true,
+            },
+        });
     });
-
-    return response;
 };
 
 export const getFunnel = async (funnelId: string) => {
-    const funnel = await db.funnel.findUnique({
-        where: { id: funnelId },
-        include: {
-            FunnelPages: {
-                orderBy: {
-                    order: "asc",
+    return getOrSetCache(`funnel:${funnelId}`, 60, async () => {
+        return db.funnel.findUnique({
+            where: { id: funnelId },
+            include: {
+                FunnelPages: {
+                    orderBy: {
+                        order: "asc",
+                    },
                 },
             },
-        },
+        });
     });
-
-    return funnel;
 };
 
 export const upsertFunnelPage = async (subaccountId: string, funnelPage: UpsertFunnelPage, funnelId: string) => {
@@ -1040,16 +1005,25 @@ export const upsertFunnelPage = async (subaccountId: string, funnelPage: UpsertF
     });
 
     revalidatePath(`/subaccount/${subaccountId}/funnels/${funnelId}`);
+    await invalidateCache(`funnel:${funnelId}`, `funnels:${subaccountId}`, `funnelpage:${funnelId}:${funnelPage.pathName ?? ""}`);
     return response;
 };
 
 export const deleteFunnelsPage = async (funnelPageId: string) => {
+    const existing = await db.funnelPage.findUnique({
+        where: { id: funnelPageId },
+        include: { Funnel: true },
+    });
+
     const response = await db.funnelPage.delete({
         where: {
             id: funnelPageId,
         },
     });
 
+    if (existing) {
+        await invalidateCache(`funnel:${existing.funnelId}`, `funnels:${existing.Funnel.subAccountId}`, `funnelpage:${existing.funnelId}:${existing.pathName}`);
+    }
     return response;
 };
 
@@ -1059,6 +1033,7 @@ export const updateFunnelProducts = async (products: string, funnelId: string) =
         data: { liveProducts: products },
     });
 
+    await invalidateCache(`funnel:${funnelId}`);
     return data;
 };
 
@@ -1072,25 +1047,25 @@ export const getFunnelPageDetails = async (funnelPageId: string) => {
 };
 
 export const getDomainContent = async (subDomainName: string) => {
-  const response = await db.funnel.findUnique({
-    where: {
-      subDomainName,
-    },
-    include: {
-      FunnelPages: true,
-    },
+  return getOrSetCache(`domain:${subDomainName}`, 60, async () => {
+    return db.funnel.findUnique({
+      where: {
+        subDomainName,
+      },
+      include: {
+        FunnelPages: true,
+      },
+    });
   });
-
-  return response;
 };
 
 export const getFunnelPageByPath = async (funnelId: string, pathName: string) => {
-  const response = await db.funnelPage.findFirst({
-    where: {
-      funnelId,
-      pathName,
-    },
+  return getOrSetCache(`funnelpage:${funnelId}:${pathName}`, 60, async () => {
+    return db.funnelPage.findFirst({
+      where: {
+        funnelId,
+        pathName,
+      },
+    });
   });
-
-  return response;
 };

@@ -2,9 +2,7 @@
 const nextConfig = {
     images: {
         domains: [
-          'uploadthing.com',
-          'utfs.io',
-          'img.clerk.com',
+          'res.cloudinary.com',
           'subdomain',
           'files.stripe.com',
         ],

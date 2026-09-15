@@ -2,7 +2,7 @@
 
 import useMounted from "@/hooks/useMounted";
 import { PricesList, TicketDetails } from "@/lib/types";
-import { Agency, Contact, Plan, User } from "@prisma/client";
+import { Agency, Contact, User } from "@prisma/client";
 import { createContext, useContext, useState } from "react";
 
 interface ModalProviderProps {
@@ -15,7 +15,7 @@ export type ModalData = {
     ticket?: TicketDetails[0];
     contact?: Contact;
     plans?: {
-        defaultPriceId: Plan;
+        defaultPriceId: string;
         plans: PricesList["data"];
     };
 };
@@ -43,7 +43,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     const setOpen = async (modal: React.ReactNode, fetchData?: () => Promise<any>) => {
         if (modal) {
             if (fetchData) {
-                setData({ ...data, ...(await fetchData()) } || {});
+                setData({ ...data, ...(await fetchData()) });
             }
             setShowingModal(modal);
             setIsOpen(true);

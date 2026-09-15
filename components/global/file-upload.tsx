@@ -1,17 +1,42 @@
-import { FileIcon, X } from "lucide-react";
+"use client";
+
+import { FileIcon, Loader2, UploadCloud, X } from "lucide-react";
 import Image from "next/image";
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Button } from "../ui/button";
-import { UploadDropzone } from "@/lib/uploadthing";
+import { uploadToCloudinary, type UploadEndpoint } from "@/lib/cloudinary-upload";
 
 type Props = {
-  apiEndpoint: "agencyLogo" | "avatar" | "subaccountLogo";
+  apiEndpoint: UploadEndpoint;
   onChange: (url?: string) => void;
   value?: string;
 };
 
 const FileUpload = ({ apiEndpoint, onChange, value }: Props) => {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState("");
+  const [dragActive, setDragActive] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const type = value?.split(".").pop();
+
+  const handleFile = async (file?: File) => {
+    if (!file) return;
+    setError("");
+    setUploading(true);
+    setProgress(0);
+
+    try {
+      const result = await uploadToCloudinary(file, apiEndpoint, setProgress);
+      onChange(result.secure_url);
+    } catch (err) {
+      console.log(err);
+      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (value) {
     return (
@@ -78,30 +103,53 @@ const FileUpload = ({ apiEndpoint, onChange, value }: Props) => {
 
   return (
     <div
-      className="
-        w-full
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragActive(true);
+      }}
+      onDragLeave={() => setDragActive(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragActive(false);
+        handleFile(e.dataTransfer.files?.[0]);
+      }}
+      onClick={() => inputRef.current?.click()}
+      className={`
+        w-full cursor-pointer
         rounded-2xl
         border border-dashed
-        border-neutral-300 dark:border-neutral-700
+        ${dragActive ? "border-black dark:border-white" : "border-neutral-300 dark:border-neutral-700"}
         bg-neutral-50 dark:bg-neutral-900/40
-        p-4
-      "
+        p-8
+        flex flex-col items-center justify-center gap-3
+        text-center
+        transition-colors
+      `}
     >
-      <UploadDropzone
-        endpoint={apiEndpoint}
-        onClientUploadComplete={(res) => {
-          onChange(res?.[0].url);
-        }}
-        onUploadError={(error) => {
-          console.log(error);
-        }}
-        className="
-          ut-button:bg-black ut-button:text-white
-          dark:ut-button:bg-white dark:ut-button:text-black
-          ut-label:text-neutral-600 dark:ut-label:text-neutral-400
-          ut-upload-icon:text-neutral-500
-        "
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={(e) => handleFile(e.target.files?.[0])}
       />
+
+      {uploading ? (
+        <>
+          <Loader2 className="h-8 w-8 animate-spin text-neutral-500" />
+          <p className="text-sm text-neutral-500">Uploading... {progress}%</p>
+        </>
+      ) : (
+        <>
+          <UploadCloud className="h-8 w-8 text-neutral-500" />
+          <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+            Click to upload or drag and drop
+          </p>
+          <p className="text-xs text-neutral-400">Images or PDF, up to 10MB</p>
+        </>
+      )}
+
+      {error && <p className="text-xs font-medium text-red-500">{error}</p>}
     </div>
   );
 };

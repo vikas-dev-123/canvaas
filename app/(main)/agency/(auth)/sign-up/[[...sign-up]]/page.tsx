@@ -1,32 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
-import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  AlertCircle,
-  Loader2,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/pages/logo";
 
 export default function SignUpPage() {
-  const { signUp, setActive, isLoaded } = useSignUp();
   const router = useRouter();
 
   const [step, setStep] = useState<"form" | "verify">("form");
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-
-  if (!isLoaded) return null;
 
   /* =======================
      STEP 1: SIGN UP
@@ -44,32 +37,23 @@ export default function SignUpPage() {
     }
 
     try {
-      await signUp.create({
-        emailAddress: email,
-        password,
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
       });
+      const data = await res.json();
 
-      await signUp.prepareEmailAddressVerification({
-        strategy: "email_code",
-      });
+      if (!res.ok) {
+        setError(data.error || "Sign up failed. Please try again.");
+        return;
+      }
 
       setMessage("VERIFICATION_CODE_SENT");
-      setStep("verify"); // ✅ move to OTP screen
-    } catch (err: any) {
+      setStep("verify");
+    } catch (err) {
       console.error("Sign up error:", err);
-      // Better error handling for sign up
-      if (err.errors && err.errors.length > 0) {
-        const firstError = err.errors[0];
-        if (firstError.code === "form_identifier_exists") {
-          setError("An account with this email already exists.");
-        } else if (firstError.code === "form_password_pwned") {
-          setError("Password is too weak. Please choose a stronger password.");
-        } else {
-          setError(firstError.message || "Sign up failed. Please try again.");
-        }
-      } else {
-        setError("Sign up failed. Please try again.");
-      }
+      setError("Sign up failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -84,28 +68,44 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      const res = await signUp.attemptEmailAddressVerification({
-        code,
+      const res = await fetch("/api/auth/signup/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code }),
       });
+      const data = await res.json();
 
-      if (res.status === "complete") {
-        await setActive({ session: res.createdSessionId });
-        router.push("/");
+      if (!res.ok) {
+        setError(data.error || "Verification failed. Please try again.");
+        return;
       }
-    } catch (err: any) {
+
+      router.push("/agency/sign-in?verified=1");
+    } catch (err) {
       console.error("Verification error:", err);
-      if (err.errors && err.errors.length > 0) {
-        const firstError = err.errors[0];
-        if (firstError.code === "verification_failed") {
-          setError("Invalid or expired verification code.");
-        } else {
-          setError(firstError.message || "Verification failed. Please try again.");
-        }
-      } else {
-        setError("Invalid verification code. Please try again.");
-      }
+      setError("Invalid verification code. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/otp/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, purpose: "SIGNUP_VERIFY" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Could not resend the code.");
+        return;
+      }
+      setMessage("A new code was sent to your email.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -129,6 +129,23 @@ export default function SignUpPage() {
           <form onSubmit={handleSignUp} className="space-y-8">
             <div className="space-y-6">
 
+              {/* Name */}
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
+                  IDENTITY_NAME
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-transparent border-b-2 border-slate-200 py-3 font-bold text-lg
+                  text-black focus:outline-none focus:border-black transition-all
+                  placeholder:text-slate-300"
+                  placeholder="Jane Doe"
+                />
+              </div>
+
               {/* Email */}
               <div>
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 block">
@@ -142,7 +159,7 @@ export default function SignUpPage() {
                   className="w-full bg-transparent border-b-2 border-slate-200 py-3 font-bold text-lg
                   text-black focus:outline-none focus:border-black transition-all
                   placeholder:text-slate-300"
-                  placeholder="architect@canvas.core"
+                  placeholder="you@example.com"
                 />
               </div>
 
@@ -161,6 +178,9 @@ export default function SignUpPage() {
                   placeholder:text-slate-300"
                   placeholder="••••••••"
                 />
+                <p className="text-[10px] text-slate-400 mt-2">
+                  At least 8 characters, with an uppercase letter, a lowercase letter, and a number.
+                </p>
               </div>
 
               {/* Confirm Password */}
@@ -217,6 +237,16 @@ export default function SignUpPage() {
                 </>
               )}
             </button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => router.push("/agency/sign-in")}
+                className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-black transition-opacity"
+              >
+                Already_have_an_account?
+              </button>
+            </div>
           </form>
         )}
 
@@ -231,7 +261,7 @@ export default function SignUpPage() {
                 type="text"
                 required
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 className="w-full bg-transparent border-b-2 border-slate-200 py-3 font-bold text-lg
                 text-black text-center tracking-[0.4em] focus:outline-none focus:border-black
                 placeholder:text-slate-300"
@@ -263,6 +293,15 @@ export default function SignUpPage() {
                   <ArrowRight className="w-6 h-6" />
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="w-full text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-black transition-opacity disabled:opacity-50"
+            >
+              {resending ? "Resending..." : "Resend_Code"}
             </button>
           </form>
         )}

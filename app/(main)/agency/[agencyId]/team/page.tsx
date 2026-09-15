@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import React from "react";
 import DataTable from "./data-table";
 import { Plus } from "lucide-react";
-import { currentUser } from "@clerk/nextjs/server";
+import { getSession } from "@/lib/auth/getSession";
 import { columns } from "./columns";
 import SendInvitation from "@/components/forms/send-invitation";
 
@@ -13,7 +13,7 @@ type Props = {
 };
 
 const Page = async ({ params }: Props) => {
-  const authUser = await currentUser();
+  const authUser = await getSession();
 
   const teamMembers = await db.user.findMany({
     where: {

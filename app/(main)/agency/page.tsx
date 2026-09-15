@@ -1,7 +1,6 @@
 import AgencyDetails from "@/components/forms/agency-details";
 import { getAuthUserDetails, verifyAndAcceptInvitation } from "@/lib/queries";
-import { currentUser } from "@clerk/nextjs/server";
-import { Plan } from "@prisma/client";
+import { getSession } from "@/lib/auth/getSession";
 import { redirect } from "next/navigation";
 import React from "react";
 
@@ -9,7 +8,7 @@ const Page = async ({
     searchParams,
 }: {
     searchParams: {
-        plan: Plan;
+        plan: string;
         state: string;
         code: string;
     };
@@ -37,7 +36,7 @@ const Page = async ({
         }
     }
 
-    const authUser = await currentUser();
+    const session = await getSession();
 
     return (
         <div className="flex justify-center items-center mt-4">
@@ -45,7 +44,7 @@ const Page = async ({
                 <h1 className="text-4xl">Create An Agency</h1>
                 <AgencyDetails
                     data={{
-                        companyEmail: authUser?.emailAddresses[0].emailAddress,
+                        companyEmail: session?.email,
                     }}
                 />
             </div>

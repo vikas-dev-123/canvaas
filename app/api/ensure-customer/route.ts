@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
-import { stripe } from "@/lib/stripe";
-import { currentUser } from "@clerk/nextjs/server";
+import { razorpay } from "@/lib/razorpay";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -25,38 +24,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ customerId: agency.customerId });
     }
 
-    // Create a new Stripe customer
-    const customer = await stripe.customers.create({
+    // Create a new Razorpay customer
+    const customer = await razorpay.customers.create({
       email: agency.companyEmail,
       name: agency.name,
-      shipping: {
-        name: agency.name,
-        address: {
-          city: agency.city,
-          state: agency.state,
-          country: agency.country,
-          postal_code: agency.zipCode,
-          line1: agency.address,
-        },
-      },
-      address: {
-        city: agency.city,
-        state: agency.state,
-        country: agency.country,
-        postal_code: agency.zipCode,
-        line1: agency.address,
-      },
+      contact: agency.companyPhone || undefined,
+      fail_existing: 0,
     });
 
     // Update the agency with the new customer ID
-    const updatedAgency = await db.agency.update({
+    await db.agency.update({
       where: { id: agencyId },
       data: { customerId: customer.id },
     });
 
     return NextResponse.json({ customerId: customer.id });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error ensuring customer:", error);
-    return NextResponse.json({ error: "Failed to ensure customer" }, { status: 500 });
+    return NextResponse.json({ error: error?.error?.description || "Failed to ensure customer" }, { status: 500 });
   }
 }

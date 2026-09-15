@@ -25,7 +25,7 @@ export const Features: React.FC = () => {
   ];
 
   return (
-    <section className="py-40 perspective-lg overflow-hidden bg-white dark:bg-black transition-colors">
+    <section id="features" className="py-40 perspective-lg overflow-hidden bg-white dark:bg-black transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-32">
           <h2 className="text-[10px] font-black tracking-[0.5em] uppercase text-slate-400 mb-8">Structural Integrity</h2>
